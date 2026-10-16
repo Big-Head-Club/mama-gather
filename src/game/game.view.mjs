@@ -170,8 +170,9 @@ export default {
     // menu / end panel
     const menu = el("div", "mg-menu"); menu.hidden = true; host.append(menu)
     const card = el("div", "mg-card"); menu.append(card)
-    const openMenu = (fill) => { card.replaceChildren(); fill(card); menu.hidden = false; stick.release() }
-    const closeMenu = () => { menu.hidden = true }
+    // a card is the whole screen: the HUD and caption go away under it (the clock pill overlapped the stars on an SE)
+    const openMenu = (fill) => { card.replaceChildren(); fill(card); menu.hidden = false; cap.hidden = true; hud.style.visibility = "hidden"; stick.release() }
+    const closeMenu = () => { menu.hidden = true; hud.style.visibility = ""; showCap() }
     menu.addEventListener("pointerdown", (e) => e.stopPropagation())
     menuBtn.onclick = () => {
       audio()
