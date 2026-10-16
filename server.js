@@ -15,6 +15,7 @@ import { renderCard } from "./src/server/og.mjs"
 import { dayKey, puzzleNumber, dayForPuzzle, msUntilNextDay, nextHourAt } from "./src/core/day.mjs"
 import { resolveDeadline, isBot, BOT_LEVELS, botLevelOf } from "./src/core/table.mjs"
 import { seedFor, normaliseCrew } from "./src/core/seed.mjs"
+import { writePNG } from "./src/server/png.mjs"
 import { modesOf, makeCode, normaliseCode, makeClaimCode, normaliseClaim, tableSeed, questRunSeed, questLegSeed } from "./src/core/modes.mjs"
 import { decodeResult } from "./src/core/share.mjs"
 import { makeRng } from "./src/core/rng.mjs"
@@ -819,7 +820,6 @@ async function iconPng() {
   // A game that drew its own icon ships it; otherwise draw one.
   const own = join(ROOT, "themes", config.theme, "icon.png")
   if (existsSync(own)) return (iconCache = await readFile(own))
-  const { writePNG } = await import("./src/server/png.mjs")
   const { drawText, textWidth, GLYPH_H } = await import("./src/server/font.mjs")
   const S = 512
   const rgb = (hex) => { const h = String(hex || "#000").replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) || 0) }

@@ -1,4 +1,4 @@
-# Mama Gather
+# Mama Duck
 
 A daily game. Built on [Relay](https://github.com/Big-Head-Club/relay).
 

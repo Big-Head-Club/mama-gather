@@ -1,4 +1,4 @@
-# Mama Gather — assumptions
+# Mama Duck — assumptions
 
 Written before the game was, checked on every `npm test`. Each of these is a
 HYPOTHESIS, not a decision: the point is that it is written down where it can be

@@ -1,12 +1,20 @@
 {
   "slug": "mama-gather",
-  "name": "Mama Gather",
-  "designers": ["mack"],
+  "name": "Mama Duck",
+  "designers": [
+    "mack"
+  ],
   "started": "2026-10-16",
-  "tags": ["Daily", "Web", "3D", "Race", "Kids"],
+  "tags": [
+    "Daily",
+    "Web",
+    "3D",
+    "Race",
+    "Kids"
+  ],
   "family": "mama-gather",
   "variant": "",
-  "url": "https://mama-gather-production.up.railway.app",
+  "url": "https://mamaduck.xyz",
   "repo": "Big-Head-Club/mama-gather",
   "state": "none",
   "platform": "both",

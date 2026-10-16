@@ -6,7 +6,7 @@
 export default {
   // --- identity -------------------------------------------------------------
   key: "mama-gather",                  // salts the seed; never change it after launch
-  title: "Mama Gather",                // working title (Mack's spec calls it a placeholder)
+  title: "Mama Duck",                  // the name (mamaduck.xyz, 2026-10-16); the repo slug and key stay mama-gather
   tagline: "Find your kits. Lead them home.",
   description: "You are a fox mother in a forest. Find your kits hidden in logs, ferns and burrows, and they fall in line behind you. Collect them all and reach the den. Nothing can go wrong; the only question is how fast. One forest a day, the same for everyone.",
   // This file is imported by BOTH the server and the browser, so it may not
