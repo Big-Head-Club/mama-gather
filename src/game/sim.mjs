@@ -65,6 +65,7 @@ export function newAttempt(lv) {
     x: lv.start[0] + 0.5, z: lv.start[1] + 0.5,
     d: 8, s: 0,                       // heading and speed step in force
     tick: 0, started: false,          // the clock runs from the first push
+    px: lv.start[0] + 0.5, pz: lv.start[1] + 0.5,   // where she was at the start of this tick (the view draws between the two)
     got: [], gotAt: [],               // spot indexes in the order they joined, and when
     lastFind: 0,
     done: false, doneAt: -1,
@@ -80,6 +81,7 @@ export function step(lv, a) {
   if (terminal(a)) return
   if (!a.started) { if (a.s > 0) a.started = true; else return }
   a.tick++
+  a.px = a.x; a.pz = a.z
   if (a.s > 0) {
     const sp = (a.s / 4) * SPEED / HZ
     const vx = DIRS[a.d][0] * sp, vz = DIRS[a.d][1] * sp

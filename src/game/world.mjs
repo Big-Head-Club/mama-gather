@@ -329,18 +329,21 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
     setHintRing(on) { hintRing.visible = !!on },
     setLook(o) { if (o.viewH) { viewH = o.viewH; w = 0 } if (o.camLift) { camDir = new THREE.Vector3(1, o.camLift, 1).normalize() } },
     // att: the sim's attempt (x, z, got, done...), hints: spot indexes rustling right now
-    frame(now, { att, hintSpot = -1, events = null } = {}) {
+    // pos: where to draw her this frame (the view interpolates between sim ticks; 30 Hz steps on a 60 Hz
+    // screen moved her every other frame and read as jitter). Falls back to the tick position.
+    frame(now, { att, pos = null, hintSpot = -1, events = null } = {}) {
       if (!resize()) return
       const dt = Math.min(0.05, lastNow ? (now - lastNow) / 1000 : 0.016); lastNow = now
       const t = now / 1000
       // mom
       let mx = mom.g.position.x, mz = mom.g.position.z
       if (att) {
-        const dx = att.x - mx, dz = att.z - mz
+        const ax = pos ? pos.x : att.x, az = pos ? pos.z : att.z
+        const dx = ax - mx, dz = az - mz
         const moved = Math.sqrt(dx * dx + dz * dz)
         momSpeed = moved / dt
-        if (moved > 0.001) { momHeading = Math.atan2(dx, dz); idleSince = t; dropCrumb(att.x, att.z) }
-        mx = att.x; mz = att.z
+        if (moved > 0.001) { momHeading = Math.atan2(dx, dz); idleSince = t; dropCrumb(ax, az) }
+        mx = ax; mz = az
         mom.g.position.set(mx, heightAt(mx, mz), mz)
         // turn smoothly
         let dh = momHeading - mom.g.rotation.y; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI

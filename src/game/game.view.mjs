@@ -305,7 +305,10 @@ export default {
           if (coach && capStep === 0 && a.started) { capStep = 1; showCap() }
           if (dbg) dbg.textContent = `tick ${a.tick}  ${a.x.toFixed(2)},${a.z.toFixed(2)}  d${a.d} s${a.s}\noptimal ${clock(lv.solve.ticks)}s  3★ ≤ ${clock(lv.solve.t3)}s  2★ ≤ ${clock(lv.solve.t2)}s\nlog ${log.length}  tier ${state.tier}`
         }
-        w.frame(now, { att: state.att, hintSpot: stuckSpot, events })
+        // draw her between the last tick and this one, by how far into the next tick the clock is
+        let pos = null
+        if (state.att && state.att.started) { const a = state.att, f = Math.min(1, Math.max(0, simTick - Math.floor(simTick))); pos = { x: a.px + (a.x - a.px) * f, z: a.pz + (a.z - a.pz) * f } }
+        w.frame(now, { att: state.att, pos, hintSpot: stuckSpot, events })
         if (!tag.hidden && state.att) placeTag(w, lv, tag, host)
       })
       showCap()
