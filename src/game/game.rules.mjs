@@ -10,7 +10,7 @@ import { generate, tierForDay, TIERS } from "./gen.mjs"
 import { newAttempt, step, advanceTo, terminal, HZ, NDIRS, MAX_TICKS } from "./sim.mjs"
 import { STAR3, STAR2 } from "./solver.mjs"
 import config from "../../relay.config.mjs"
-import { routeToken } from "./card.mjs"
+import { routeToken } from "./route.mjs"
 
 export { HZ, TIERS }
 export const PRACTICE_SEED = 0x5eed7
