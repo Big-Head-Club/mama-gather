@@ -63,7 +63,7 @@ function pathTo(lv, a, target) {
   return seg.map((i) => { const x = i % lv.w; return [x + 0.5, (i - x) / lv.w + 0.5] })
 }
 
-export function searchBot(seed, tier) {
+export function searchBot(seed, tier, trace) {
   const state = create(seed, { tier })
   const lv = state.level
   const known = new Map()     // spot index -> true (baby) / false (empty)
@@ -81,6 +81,7 @@ export function searchBot(seed, tier) {
     const allGot = a.got.length === lv.babies.length
     let goal = -1
     if (allGot) goal = -2
+    else if (target >= 0 && (want(target) || unknown(target))) goal = target   // keep going: no dithering between two spots
     else {
       let bd = Infinity
       lv.spots.forEach((sp, i) => {
@@ -110,7 +111,7 @@ export function searchBot(seed, tier) {
     if (!plan) return null
     return { waypoints: plan, k: 0 }
   }
-  const ticks = walk(state, [[lv.start[0] + 0.5, lv.start[1] + 0.5]], until)
+  const ticks = walk(state, [[lv.start[0] + 0.5, lv.start[1] + 0.5]], until, trace)
   return { ticks, optimal: lv.solve.ticks, ratio: ticks / lv.solve.ticks }
 }
 

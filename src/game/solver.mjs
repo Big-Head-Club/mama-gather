@@ -56,11 +56,14 @@ export function distField(lv, sources, ability = lv.ability) {
       if (dh > 0.5 || dh < -0.5) continue
       let cost = 1
       if (dx && dz) {
-        // no corner cutting: both orthogonal neighbours must be walkable at a compatible height
+        // Diagonals only on level ground and never through a ramp: her collision box is 0.68 m wide,
+        // so a diagonal step off a ramp's edge puts a corner into the cliff while her centre is still
+        // low (the route bot proved it, seeds 1009/1012/1015 small). No corner cutting either: both
+        // orthogonal neighbours must be walkable at the same height.
+        if (dh !== 0 || grid[i] === C.RAMP || grid[j] === C.RAMP) continue
         const a = z * w + nx, b = nz * w + x
         if (!ok(a) || !ok(b)) continue
-        const ha = heightOf(grid[a]) - hz, hb = heightOf(grid[b]) - hz
-        if (ha > 0.5 || ha < -0.5 || hb > 0.5 || hb < -0.5) continue
+        if (heightOf(grid[a]) !== hz || heightOf(grid[b]) !== hz || grid[a] === C.RAMP || grid[b] === C.RAMP) continue
         cost = SQRT2
       }
       const nd = d + cost

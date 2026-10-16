@@ -29,7 +29,13 @@ export function loadModel(key) {
       if (o.isMesh) {
         o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false
         const m = o.material
-        if (m && m.isMeshStandardMaterial) { m.roughness = 1; m.metalness = 0; if (m.map) { m.map.colorSpace = THREE.SRGBColorSpace; m.map.magFilter = THREE.NearestFilter } }
+        if (m && m.isMeshStandardMaterial) {
+          m.roughness = 1; m.metalness = 0
+          if (m.map) { m.map.colorSpace = THREE.SRGBColorSpace; m.map.magFilter = THREE.NearestFilter }
+          // a platform's top is the same teal as the ground, so a raised block read as a brown wall on
+          // flat grass; its own lighter mint makes height legible from the iso angle
+          if (/^cliff/.test(key) && m.name === "grass") m.color.set(0xb9f7ea)
+        }
       }
     })
     s.position.set(-(info.lo[0] + info.hi[0]) / 2, -info.lo[1], -(info.lo[2] + info.hi[2]) / 2)
@@ -41,10 +47,14 @@ export function loadModel(key) {
 }
 
 // Every (geometry, material, local matrix) in a template, for instancing.
-function parts(t) {
+export function parts(t) {
   const out = []
   t.root.updateMatrixWorld(true)
-  t.root.traverse((o) => { if (o.isMesh) out.push({ geo: o.geometry, mat: o.material, m: o.matrixWorld.clone() }) })
+  t.root.traverse((o) => {
+    if (!o.isMesh) return
+    const m = o.matrixWorld.clone()
+    out.push({ geo: o.geometry, mat: o.material, m })
+  })
   return out
 }
 
@@ -74,16 +84,19 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
   host.prepend(canvas)
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" })
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
-  renderer.shadowMap.enabled = true
+  renderer.shadowMap.enabled = !/noshadow/.test(location.search)
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   renderer.outputColorSpace = THREE.SRGBColorSpace
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(COL.deep)
 
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -100, 200)
+  // near/far hug the scene: a 300-unit depth range made the block tops (grass slab over dirt cube,
+  // coplanar) z-fight and come out brown
+  const CAM_D = 40
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, CAM_D - 30, CAM_D + 40)
   let viewH = lookOpts.viewH || 15          // metres visible top to bottom on a portrait phone
   let camDir = new THREE.Vector3(1, lookOpts.camLift || 1, 1).normalize()
-  camera.position.copy(camDir).multiplyScalar(60)
+  camera.position.copy(camDir).multiplyScalar(CAM_D)
   camera.lookAt(0, 0, 0)
 
   scene.add(new THREE.HemisphereLight(COL.sky, 0x3a6b2a, 1.1))
@@ -122,8 +135,8 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
     if (c === C.PLATFORM) { place("cliff_block_rock", cx, cz, 0, 1, 0); continue }
     if (c === C.RAMP) {
       const up = rampUp(lv, x, z)
-      // the slope model rises along +x; turn it so it rises toward the platform
-      const rot = up[0] === 1 ? 0 : up[0] === -1 ? Math.PI : up[1] === 1 ? -Math.PI / 2 : Math.PI / 2
+      // the slope model rises toward -x (gallery-checked); turn it so it rises toward the platform
+      const rot = up[0] === 1 ? Math.PI : up[0] === -1 ? 0 : up[1] === 1 ? Math.PI / 2 : -Math.PI / 2
       place("cliff_blockSlope_rock", cx, cz, 0, 1, rot)
       continue
     }
@@ -135,7 +148,9 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
       place(ROCKS[Math.floor(r * ROCKS.length)], cx, cz, 0, 1.25 + h32(x, z, 3) * 0.3, r * 6.283)
     } else if (c === C.FENCE || c === C.GAP) {
       const alongX = cell(x + 1, z) === C.FENCE || cell(x - 1, z) === C.FENCE || cell(x + 1, z) === C.GAP || cell(x - 1, z) === C.GAP
-      place(c === C.FENCE ? "fence_simple" : "fence_simpleLow", cx, cz, 0, 1.0, alongX ? 0 : Math.PI / 2)
+      // a gap is a low rail she squeezes under: the same line, visibly broken
+      if (c === C.FENCE) place("fence_simple", cx, cz, 0, 1.0, alongX ? 0 : Math.PI / 2)
+      else { P.set(cx, 0, cz); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), alongX ? 0 : Math.PI / 2); S.set(1, 0.55, 1); M.compose(P, Q, S); put("fence_simpleLow", M.clone()) }
     }
   }
   for (const [x, z, kind, turn] of lv.decor || []) {
@@ -181,7 +196,19 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
   mom.g.position.set(lv.start[0] + 0.5, 0, lv.start[1] + 0.5)
   world.add(mom.g)
   const kits = []   // { g, mixer, slot, hop }
-  const makeKit = (n) => { const k = actor(momT, momScale * 0.42, COL.baby); k.g.visible = false; world.add(k.g); kits.push(k); return k }
+  // Sloppy followers (Mack, 2026-10-16: "they gotta follow way less accurately"). Each kit has its own
+  // lag behind its slot, a sideways wobble, a catch-up gain that makes it cut corners and overshoot
+  // turns, and a habit of stopping to sniff something and then scurrying to catch up.
+  const makeKit = (n) => {
+    const k = actor(momT, momScale * 0.42, COL.baby); k.g.visible = false; world.add(k.g); kits.push(k)
+    const r = (a, b) => a + Math.random() * (b - a)
+    k.vx = 0; k.vz = 0
+    k.lag = r(0, 0.7); k.amp = r(0.25, 0.6); k.freq = r(0.5, 1.1); k.phase = r(0, 6.28); k.bias = r(-0.45, 0.45)
+    k.gain = r(3.2, 5.5); k.vmax = r(3.3, 3.9)
+    k.sniffAt = t_() + r(2, 7); k.sniffUntil = 0; k.sniff = null
+    return k
+  }
+  const t_ = () => performance.now() / 1000
 
   // hint ring (toggle) and debug rings
   const hintRing = new THREE.Mesh(new THREE.RingGeometry(HINT - 0.08, HINT, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, depthWrite: false }))
@@ -276,7 +303,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
   function placeCamera(dt, lead) {
     const k = 1 - Math.exp(-dt * 6)
     look.lerp(new THREE.Vector3(target.x + lead.x, target.y, target.z + lead.z), k)
-    camera.position.copy(look).addScaledVector(camDir, 60)
+    camera.position.copy(look).addScaledVector(camDir, CAM_D)
     camera.lookAt(look)
     sun.position.set(look.x - 6, 14, look.z + 5); sun.target.position.copy(look)
   }
@@ -337,7 +364,19 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
             const ang = (i / Math.max(1, kits.length)) * Math.PI * 2 + 0.7
             const rr = 0.9 + 0.25 * (i % 3)
             goal = { x: mx + Math.cos(ang) * rr, z: mz + Math.sin(ang) * rr, hx: mx - (mx + Math.cos(ang) * rr), hz: mz - (mz + Math.sin(ang) * rr) }
-          } else goal = trailAt(SPACING * (i + 1))
+          } else {
+            goal = trailAt(SPACING * (i + 1) + k.lag)
+            // sideways of the trail: a slow wobble plus a standing bias, so the line is a loose ribbon
+            const hl = Math.sqrt(goal.hx * goal.hx + goal.hz * goal.hz) || 1
+            const nx = -goal.hz / hl, nz = goal.hx / hl
+            const side = k.bias + k.amp * Math.sin(t * k.freq + k.phase)
+            goal = { x: goal.x + nx * side, z: goal.z + nz * side, hx: goal.hx, hz: goal.hz }
+          }
+          // a sniff: stop for a moment somewhere just off the line, then scurry
+          if (!idle && !REDUCED && k.hop >= 1) {
+            if (!k.sniff && t > k.sniffAt && momSpeed > 1) { k.sniff = { x: k.g.position.x + (Math.random() - 0.5) * 0.8, z: k.g.position.z + (Math.random() - 0.5) * 0.8 }; k.sniffUntil = t + 0.3 + Math.random() * 0.5 }
+            if (k.sniff) { if (t > k.sniffUntil) { k.sniff = null; k.sniffAt = t + 3 + Math.random() * 6 } else goal = { x: k.sniff.x, z: k.sniff.z, hx: goal.hx, hz: goal.hz } }
+          }
           const gy = heightAt(goal.x, goal.z)
           const kp = k.g.position
           if (k.hop < 1) {
@@ -348,14 +387,24 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
             kp.z += (goal.z - kp.z) * Math.min(1, dt * 7)
             kp.y = gy + Math.sin(e * Math.PI) * 0.9
             k.g.scale.setScalar(momScale * 0.42 * (0.6 + 0.4 * e))
+            k.vx = 0; k.vz = 0
           } else {
-            const f = Math.min(1, dt * (idle ? 3 : 12))
-            kp.x += (goal.x - kp.x) * f; kp.z += (goal.z - kp.z) * f; kp.y = gy
+            // steer: a lagging, capped velocity so it cuts corners and overshoots, and sprints when far behind
+            const dx = goal.x - kp.x, dz = goal.z - kp.z, dist = Math.sqrt(dx * dx + dz * dz)
+            const far = dist > 2.2
+            const want = idle ? 2.5 : k.gain
+            let tx = dx * want, tz = dz * want
+            const tl = Math.sqrt(tx * tx + tz * tz)
+            const cap = k.sniff ? 1.2 : far ? k.vmax + 1.2 : k.vmax
+            if (tl > cap) { tx *= cap / tl; tz *= cap / tl }
+            const acc = Math.min(1, dt * (far ? 9 : 5))
+            k.vx += (tx - k.vx) * acc; k.vz += (tz - k.vz) * acc
+            kp.x += k.vx * dt; kp.z += k.vz * dt; kp.y = gy
           }
-          const ks = Math.sqrt((goal.x - kp.x) ** 2 + (goal.z - kp.z) ** 2)
-          const hx = idle ? mx - kp.x : goal.hx, hz = idle ? mz - kp.z : goal.hz
-          if (hx || hz) { let dh = Math.atan2(hx, hz) - k.g.rotation.y; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; k.g.rotation.y += dh * Math.min(1, dt * 10) }
-          k.play(momSpeed > 0.15 || ks > 0.1 ? "run" : "idle", dt, 1.6)
+          const ks = Math.sqrt(k.vx * k.vx + k.vz * k.vz)
+          const hx = idle ? mx - kp.x : (ks > 0.3 ? k.vx : goal.hx), hz = idle ? mz - kp.z : (ks > 0.3 ? k.vz : goal.hz)
+          if (hx || hz) { let dh = Math.atan2(hx, hz) - k.g.rotation.y; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; k.g.rotation.y += dh * Math.min(1, dt * 9) }
+          k.play(ks > 0.35 ? "run" : "idle", dt, 1.3 + ks * 0.15)
         })
         // the den lights when the line is complete
         const complete = att.got.length === lv.babies.length && lv.babies.length > 0
@@ -423,6 +472,8 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
       canvas.remove()
     },
   }
+  api.scene = scene
+  if (/[?&]debug/.test(location.search)) window.__mgWorld = api
   return api
 }
 

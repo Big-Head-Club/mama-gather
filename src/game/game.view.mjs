@@ -14,6 +14,22 @@ import { SPECIES } from "./kit.mjs"
 const REDUCED = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches
 const TOUCH = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches
 const DEBUG = typeof location !== "undefined" && /[?&]debug/.test(location.search)
+// ?pump=1: drive the frame loop from a MessageChannel as well, which Chrome does not freeze when the
+// tab is not focused (automation runs at 1 fps on rAF alone; log-run found this, 2026-09-17).
+const PUMP = typeof location !== "undefined" && /[?&]pump/.test(location.search)
+function makeLoop(fn) {
+  let on = true, last = 0
+  const step = (now) => { if (!on) return; try { fn(now) } catch (e) { console.error(e) } }
+  if (PUMP) {
+    const mc = new MessageChannel()
+    mc.port1.onmessage = () => { if (!on) return; const now = performance.now(); if (now - last >= 15) { last = now; step(now) } setTimeout(() => mc.port2.postMessage(0), 4) }
+    mc.port2.postMessage(0)
+  } else {
+    const raf = (now) => { if (!on) return; step(now); requestAnimationFrame(raf) }
+    requestAnimationFrame(raf)
+  }
+  return { stop() { on = false } }
+}
 
 const clock = (ticks) => { const s = Math.max(0, ticks) / HZ; const m = Math.floor(s / 60), r = s - m * 60; return m ? `${m}:${r.toFixed(1).padStart(4, "0")}` : `${r.toFixed(1)}` }
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n }
@@ -82,18 +98,17 @@ export default {
     const host = el("div", "mg"); host.dataset.bleed = ""
     host.style.cssText = "pointer-events:none"
     stage.prepend(host)
-    let dead = false, raf = 0, world = null
+    let dead = false, loop = null, world = null
     const lv = generate((seed ^ 0x77) >>> 0, "tiny")
     const pts = lv.solve.route.concat(lv.solve.route.slice().reverse())
     makeWorld(host, lv, { splash: true, lookOpts: Object.assign(look(), { viewH: 11 }) }).then((w) => {
       if (dead) { w.destroy(); return }
       world = w
-      const loop = (now) => { if (dead) return; w.splashStep(now, pts); raf = requestAnimationFrame(loop) }
-      raf = requestAnimationFrame(loop)
+      loop = makeLoop((now) => { if (!dead) w.splashStep(now, pts) })
     }).catch(() => {})
     const veil = el("div"); veil.style.cssText = "position:absolute;inset:0;background:linear-gradient(180deg, rgba(5,30,14,.15), rgba(5,30,14,.55) 70%);pointer-events:none"
     host.append(veil)
-    return { destroy() { dead = true; cancelAnimationFrame(raf); if (world) world.destroy(); host.remove() } }
+    return { destroy() { dead = true; if (loop) loop.stop(); if (world) world.destroy(); host.remove() } }
   },
 
   // The payoff: the map from above with the route she walked drawn in over two seconds.
@@ -149,6 +164,8 @@ export default {
     const tag = el("div", "mg-tag"); tag.hidden = true; host.append(tag)
     if (!TOUCH) { const k = el("div", "mg-keys"); k.innerHTML = "<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>or arrows to walk</span>"; host.append(k) }
     const dbg = DEBUG ? el("div", "mg-dbg") : null; if (dbg) host.append(dbg)
+    // ?debug exposes the level and an input hook so a script can drive a run (tools/phone-check, hand checks)
+    if (DEBUG) window.__mg = { state, lv, input: (d, s) => stickInput(d, s), get att() { return state.att } }
 
     // menu / end panel
     const menu = el("div", "mg-menu"); menu.hidden = true; host.append(menu)
@@ -171,18 +188,19 @@ export default {
     let hintOn = tw().hint === "on"; try { if (localStorage.getItem("mg.hintring") === "1") hintOn = true } catch {}
 
     // world
-    let world = null, raf = 0
+    let world = null, loop = null
     let simTick = 0, lastNow = 0, paused = false
     let stuckSpot = -1, capStep = 0
+    const stickInput = (d, s) => {
+      if (done || destroyed || !state.att) return
+      audio()
+      const a = state.att
+      if (!a.started) { simTick = 0; if (s === 0) return }
+      push({ t: Math.floor(simTick), d, s })
+    }
     const stick = makeStick(host, {
       toWorld: (sx, sy) => (world ? world.toWorld(sx, sy) : [sx, sy]),
-      onChange: (d, s) => {
-        if (done || destroyed || !state.att) return
-        audio()
-        const a = state.att
-        if (!a.started) { simTick = 0; if (s === 0) return }
-        push({ t: Math.floor(simTick), d, s })
-      },
+      onChange: stickInput,
     })
     const events = {
       kit: (n) => { sfx.kit(n); buzz(18); count.textContent = `${n}/${lv.babies.length}`; dots.children[n - 1]?.classList.add("on"); if (n === lv.babies.length) { sfx.allfound(); buzz([30, 40, 60]); counter.classList.add("done"); capStep = Math.max(capStep, 3); showCap() } else { capStep = Math.max(capStep, 2); showCap() } },
@@ -237,7 +255,9 @@ export default {
     }
     let lastPath = null
 
-    const onVis = () => { if (document.hidden) paused = true; else { paused = false; lastNow = 0 } }
+    // a hidden tab pauses the clock (simulating forty seconds in one frame is a death nobody saw); under the
+    // automation pump the tab reports hidden while it is plainly being driven, so the pump never pauses
+    const onVis = () => { if (PUMP) return; if (document.hidden) paused = true; else { paused = false; lastNow = 0 } }
     document.addEventListener("visibilitychange", onVis)
     onTweak(() => { if (world) world.setLook(look()); if (tw().music === "on" && !sfx.muted()) sfx.music(); else sfx.musicOff() })
     const unlock = () => { audio(); if (tw().music === "on" && !sfx.muted()) sfx.music() }
@@ -250,9 +270,8 @@ export default {
       w.setHintRing(hintOn)
       if (DEBUG) w.showDebug(true)
       restart()
-      const loop = (now) => {
+      loop = makeLoop((now) => {
         if (destroyed) return
-        raf = requestAnimationFrame(loop)
         const dt = paused || !lastNow ? 0 : Math.min(0.1, (now - lastNow) / 1000); lastNow = now
         stick.poll()
         const a = state.att
@@ -284,8 +303,7 @@ export default {
         }
         w.frame(now, { att: state.att, hintSpot: stuckSpot, events })
         if (!tag.hidden && state.att) placeTag(w, lv, tag, host)
-      }
-      raf = requestAnimationFrame(loop)
+      })
       showCap()
     }).catch((e) => { console.error(e); cap.hidden = false; cap.textContent = "The forest could not load. Reload to try again." })
 
@@ -293,7 +311,7 @@ export default {
       get log() { return log },
       destroy() {
         destroyed = true
-        cancelAnimationFrame(raf)
+        if (loop) loop.stop()
         document.removeEventListener("visibilitychange", onVis)
         stick.destroy(); sfx.musicOff()
         if (world) world.destroy()

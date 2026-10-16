@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Mama Gather gallery</title>
+<style>body{margin:0;background:#157a3a;font:13px/1.4 system-ui;color:#fff}#g{display:grid;grid-template-columns:repeat(auto-fill,220px);gap:8px;padding:8px}.c{background:#0b3d1e;border-radius:8px;padding:6px}.c canvas{width:208px;height:170px;display:block;border-radius:6px;background:#0e4a26}</style></head>
+<body><div id="g"></div>
+<script>window.BUILD=""</script>
+<script type="module">
+import { THREE, loadModel, parts } from "/src/game/world.mjs"
+const INST = /inst/.test(location.search), SHADOW = /shadow/.test(location.search)
+import { PROPS3D } from "/src/game/props3d.data.mjs"
+const g = document.getElementById("g")
+const keys = Object.keys(PROPS3D)
+// one renderer for the lot (Chrome allows ~16 WebGL contexts); each tile copies the frame to a 2D canvas
+const off = document.createElement("canvas"); off.width = 416; off.height = 340
+const r = new THREE.WebGLRenderer({ canvas: off, antialias: true, preserveDrawingBuffer: true }); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = SHADOW; r.shadowMap.type = THREE.PCFSoftShadowMap
+for (const key of keys) {
+  const c = document.createElement("div"); c.className = "c"
+  const cv = document.createElement("canvas"); cv.width = 416; cv.height = 340
+  const lab = document.createElement("div"); lab.textContent = key + " " + PROPS3D[key].size.map(v => v.toFixed(2)).join("×")
+  c.append(cv, lab); g.append(c)
+  const sc = new THREE.Scene(); sc.background = new THREE.Color(0x0e4a26)
+  sc.add(new THREE.HemisphereLight(0xcfe9ff, 0x3a6b2a, 1.1)); const sun = new THREE.DirectionalLight(0xfff1d6, 2); sun.position.set(-6, 14, 5); sc.add(sun); sc.add(sun.target); if (SHADOW) { sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -20; sun.shadow.camera.right = 20; sun.shadow.camera.top = 20; sun.shadow.camera.bottom = -20; sun.shadow.camera.near = 1; sun.shadow.camera.far = 60; sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.04 }
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshLambertMaterial({ color: 0x0e4a26 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -0.01; floor.receiveShadow = true; sc.add(floor)
+  const grid = new THREE.GridHelper(2, 2, 0xffffff, 0x88cc88); sc.add(grid)
+  const ax = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0.02, 0), 0.8, 0xff4444); sc.add(ax)   // +x red
+  const az = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0.02, 0), 0.8, 0x4488ff); sc.add(az)   // +z blue
+  loadModel(key).then((t) => {
+    if (INST) { for (const p of parts(t)) { const im = new THREE.InstancedMesh(p.geo, p.mat, 1); im.setMatrixAt(0, p.m); im.instanceMatrix.needsUpdate = true; im.castShadow = true; im.receiveShadow = true; sc.add(im) } }
+    else { const m = t.root.clone(); sc.add(m) }
+    const s = Math.max(...PROPS3D[key].size, 1)
+    const cam = new THREE.OrthographicCamera(-s * 0.75 * 416 / 340, s * 0.75 * 416 / 340, s * 0.75, -s * 0.75, -50, 50)
+    cam.position.set(1, 1, 1).normalize().multiplyScalar(10); cam.lookAt(0, s * 0.3, 0)
+    cam.position.y += s * 0.3
+    r.render(sc, cam)
+    cv.getContext("2d").drawImage(off, 0, 0)
+  })
+}
+</script></body></html>
