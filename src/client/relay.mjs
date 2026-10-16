@@ -292,7 +292,9 @@ function screenHome() {
   // our other games, under everything else on the door (gameaday shelf; in flow, never over play)
   const shelf = el("div", "gad-shelf")
   wrap.append(shelf)
-  gad((G) => G.shelf({ container: shelf, gameId: R.key }))
+  // the shelf pulls the other games' share art (a megabyte each): it waits until this page has loaded and
+  // settled, so the game's own forest, models and sounds come first
+  gad((G) => { const go = () => G.shelf({ container: shelf, gameId: R.key }); if (window.requestIdleCallback) requestIdleCallback(() => setTimeout(go, 1500), { timeout: 3000 }); else setTimeout(go, 2500) })
 
   $("#stage").append(wrap)
 }

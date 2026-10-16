@@ -8,11 +8,13 @@
 
 import { NDIRS } from "./sim.mjs"
 
-export function makeStick(host, { toWorld, onChange, radius = 54, touchOnly = false }) {
+// `aimFrom`, when given, is where she is on the screen: a MOUSE then walks her toward the cursor for as
+// long as the button is held (no stick to drag), which is how a desktop player expects to steer.
+export function makeStick(host, { toWorld, onChange, radius = 54, touchOnly = false, aimFrom = null }) {
   const base = document.createElement("div"); base.className = "mg-stick"; base.hidden = true
   const knob = document.createElement("div"); knob.className = "mg-knob"
   base.append(knob); host.append(base)
-  let pid = null, ox = 0, oy = 0
+  let pid = null, ox = 0, oy = 0, mouseAim = false, lastClient = null
   let last = { d: 8, s: 0 }
   const keys = new Set()
   let dead = false
@@ -35,13 +37,27 @@ export function makeStick(host, { toWorld, onChange, radius = 54, touchOnly = fa
     if (e.target.closest("button, a, .mg-hud, .mg-menu")) return
     pid = e.pointerId; ox = e.clientX; oy = e.clientY
     host.setPointerCapture?.(pid)
+    mouseAim = e.pointerType === "mouse" && !!aimFrom
+    if (mouseAim) { lastClient = [e.clientX, e.clientY]; aim(); e.preventDefault(); return }
     const r = host.getBoundingClientRect()
     base.style.left = (ox - r.left) + "px"; base.style.top = (oy - r.top) + "px"
     base.hidden = false; knob.style.transform = "translate(-50%,-50%)"
     e.preventDefault()
   }
+  // toward the cursor from wherever she is; speed by distance, full at 90px
+  function aim() {
+    if (!mouseAim || !lastClient) return
+    const r = host.getBoundingClientRect()
+    const [mx, my] = aimFrom()
+    const dx = lastClient[0] - r.left - mx, dy = lastClient[1] - r.top - my
+    const len = Math.sqrt(dx * dx + dy * dy)
+    const mag = Math.min(1, len / 90)
+    if (len < 14) { emit(0, 0); return }
+    emit(dx / len * mag, dy / len * mag)
+  }
   const move = (e) => {
     if (e.pointerId !== pid) return
+    if (mouseAim) { lastClient = [e.clientX, e.clientY]; aim(); e.preventDefault(); return }
     let dx = e.clientX - ox, dy = e.clientY - oy
     const len = Math.sqrt(dx * dx + dy * dy)
     if (len > radius) { dx *= radius / len; dy *= radius / len }
@@ -51,7 +67,7 @@ export function makeStick(host, { toWorld, onChange, radius = 54, touchOnly = fa
   }
   const up = (e) => {
     if (e.pointerId !== pid) return
-    pid = null; base.hidden = true
+    pid = null; base.hidden = true; mouseAim = false
     if (!keys.size) emit(0, 0)
   }
   host.addEventListener("pointerdown", down)
@@ -76,6 +92,7 @@ export function makeStick(host, { toWorld, onChange, radius = 54, touchOnly = fa
   // gamepad: polled by the view each frame
   let padActive = false
   function poll() {
+    if (mouseAim) return
     const p = window.pad
     if (!p || !p.connected || pid !== null || keys.size) { if (padActive) { padActive = false; emit(0, 0) } return }
     const st = p.stick("left")
@@ -84,9 +101,9 @@ export function makeStick(host, { toWorld, onChange, radius = 54, touchOnly = fa
   }
 
   return {
-    poll,
+    poll() { poll(); if (mouseAim) aim() },
     get active() { return pid !== null || keys.size > 0 || padActive },
-    release() { keys.clear(); pid = null; base.hidden = true; emit(0, 0) },
+    release() { keys.clear(); pid = null; mouseAim = false; base.hidden = true; emit(0, 0) },
     destroy() {
       dead = true
       host.removeEventListener("pointerdown", down); host.removeEventListener("pointermove", move)

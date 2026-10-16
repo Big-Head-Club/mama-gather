@@ -51,3 +51,40 @@ export function drawMap(canvas, lv, { route = null, optimal = null, babies = fal
   }
   return { s, ox, oy }
 }
+
+// The corner map during a run: the terrain dimmed, the spots she has learned (grey empty, orange has a
+// kit), the den, and her. Nothing she has not seen. `seen` is spot index -> true (kit) / false (empty).
+export function drawMini(canvas, lv, { seen, att, hintSpot = -1, cache = null, got = [], babyPos = null }) {
+  const g = canvas.getContext("2d")
+  const W = canvas.width, H = canvas.height
+  const s = Math.min(W / lv.w, H / lv.h)
+  const ox = (W - lv.w * s) / 2, oy = (H - lv.h * s) / 2
+  if (!cache.terrain) {
+    const c = document.createElement("canvas"); c.width = W; c.height = H
+    const cg = c.getContext("2d")
+    cg.fillStyle = "#07301a"; cg.fillRect(0, 0, W, H)
+    for (let z = 0; z < lv.h; z++) for (let x = 0; x < lv.w; x++) {
+      const k = lv.grid[z * lv.w + x]
+      cg.fillStyle = FILL[k] || "#3f9a4a"
+      cg.fillRect(ox + x * s, oy + z * s, s + 0.5, s + 0.5)
+    }
+    cg.fillStyle = "rgba(0,0,0,.42)"; cg.fillRect(0, 0, W, H)
+    cache.terrain = c
+  }
+  g.clearRect(0, 0, W, H)
+  g.drawImage(cache.terrain, 0, 0)
+  const blink = (performance.now() / 300) % 2 < 1
+  lv.spots.forEach((sp, i) => {
+    if (!seen.has(i) && hintSpot !== i) return
+    if (got.indexOf(i) >= 0) return
+    const kit = seen.get(i) === true || hintSpot === i
+    g.fillStyle = kit ? (hintSpot === i && blink ? "#fff6d6" : "#ffb15e") : "rgba(255,255,255,.35)"
+    g.beginPath(); g.arc(ox + (sp.x + 0.5) * s, oy + (sp.z + 0.5) * s, Math.max(2.2, s * (kit ? 0.9 : 0.6)), 0, Math.PI * 2); g.fill()
+  })
+  g.fillStyle = "#ffd23f"; g.beginPath(); g.arc(ox + (lv.exit[0] + 0.5) * s, oy + (lv.exit[1] + 0.5) * s, Math.max(3, s * 1.1), 0, Math.PI * 2); g.fill()
+  g.fillStyle = "#2a1a0e"; g.beginPath(); g.arc(ox + (lv.exit[0] + 0.5) * s, oy + (lv.exit[1] + 0.5) * s, Math.max(1.5, s * 0.5), 0, Math.PI * 2); g.fill()
+  if (att) {
+    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(ox + att.x * s, oy + att.z * s, Math.max(2.6, s * 0.9), 0, Math.PI * 2); g.fill()
+    g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 1; g.stroke()
+  }
+}

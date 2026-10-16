@@ -10,6 +10,7 @@ import { generate, tierForDay, TIERS } from "./gen.mjs"
 import { newAttempt, step, advanceTo, terminal, HZ, NDIRS, MAX_TICKS } from "./sim.mjs"
 import { STAR3, STAR2 } from "./solver.mjs"
 import config from "../../relay.config.mjs"
+import { routeToken } from "./card.mjs"
 
 export { HZ, TIERS }
 export const PRACTICE_SEED = 0x5eed7
@@ -104,6 +105,7 @@ export function result(state, { seconds = 0 } = {}) {
     species: lv.species,
     optimal: lv.solve.ticks, t3: lv.solve.t3, t2: lv.solve.t2,
     route: state.bestPath || null,
+    p: state.bestPath ? routeToken(state.bestPath, lv) : "",
     events: events(state),
   }
 }

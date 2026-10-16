@@ -712,7 +712,22 @@ const server = createServer(async (req, res) => {
     }
 
     if (path === "/api/og.png" && !config.share.textCard) {
-      // The picture alone: the theme's plate, full bleed, 1200x630.
+      // The picture alone: the theme's plate, full bleed, 1200x630. A game with share.cardArt may draw a
+      // finished run's own picture instead (Mama Gather: the route on a map), from what the link carries.
+      if (config.share.cardArt && url.searchParams.get("r")) {
+        try {
+          const n = Number(url.searchParams.get("d")) || puzzleNumber(today(), config.epoch)
+          const r = config.share.fromToken(decodeResult(url.searchParams.get("r")) || {})
+          const day = dayForPuzzle(n, config.epoch)
+          const ctx = day ? context({ day, crew: url.searchParams.get("c") }) : null
+          const art = ctx && r ? await config.share.cardArt({ seed: ctx.seed, number: n, result: r }) : null
+          if (art && art.rgba) {
+            const png = writePNG(art.w, art.h, art.rgba)
+            res.writeHead(200, { "content-type": "image/png", "content-length": png.length, "cache-control": "public, max-age=86400, immutable" })
+            return res.end(png)
+          }
+        } catch (e) { console.error("cardArt", e) }
+      }
       const png = await readFile(join(ROOT, "themes", config.theme, "card.png"))
       res.writeHead(200, { "content-type": "image/png", "content-length": png.length, "cache-control": "public, max-age=86400" })
       return res.end(png)

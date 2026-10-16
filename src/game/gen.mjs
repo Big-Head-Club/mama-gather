@@ -32,6 +32,11 @@ export function weekday(y, m, d) {
   const h = (d + Math.floor(13 * (m + 1) / 5) + k + Math.floor(k / 4) + Math.floor(j / 4) + 5 * j) % 7  // 0 = Saturday
   return (h + 5) % 7
 }
+// 0 = Monday .. 6 = Sunday for a puzzle number (the view picks the time of day from it)
+export function weekdayForDay(number, epoch) {
+  const [y, m, d] = String(epoch || "2026-10-16").split("-").map(Number)
+  return ((weekday(y, m, d) + (number - 1)) % 7 + 7) % 7
+}
 export function tierForDay(number, epoch) {
   const [y, m, d] = String(epoch || "2026-10-16").split("-").map(Number)
   const wd = (weekday(y, m, d) + (number - 1)) % 7

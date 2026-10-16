@@ -74,7 +74,11 @@ export function distField(lv, sources, ability = lv.ability) {
   return { dist, parent }
 }
 
-// The walkable cells whose centre is within PICKUP of a spot's centre.
+// The walkable cells whose centre is safely within PICKUP of a spot's centre. A diagonal neighbour's
+// centre is 1.41 m out, 9 cm inside the 1.5 m disc: a route through it is one loose step from a miss
+// (the practice level's second kit, 2026-10-16), so the solver keeps a 0.1 m margin and routes through
+// the cells beside the spot instead.
+export const PICKUP_SAFE = PICKUP - 0.1
 export function pickupCells(lv, spot, ability = lv.ability) {
   const out = []
   const r = Math.floor(PICKUP) + 1
@@ -82,7 +86,7 @@ export function pickupCells(lv, spot, ability = lv.ability) {
     if (x < 0 || z < 0 || x >= lv.w || z >= lv.h) continue
     if (!passable(cellAt(lv, x, z), ability)) continue
     const dx = x - spot.x, dz = z - spot.z
-    if (dx * dx + dz * dz <= PICKUP * PICKUP) out.push(z * lv.w + x)
+    if (dx * dx + dz * dz <= PICKUP_SAFE * PICKUP_SAFE) out.push(z * lv.w + x)
   }
   return out
 }

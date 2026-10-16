@@ -82,8 +82,16 @@ export default {
         { value: String(r.attempts), label: "runs" },
       ]
       : [{ value: `${r.found || 0}/${r.babies}`, label: "kits", accent: true }]),
-    token: (r) => ({ n: r.number, k: r.ticks, s: r.stars, a: r.attempts, b: r.babies, f: r.found }),
-    fromToken: (t) => ({ number: t.n, ticks: t.k, stars: t.s, attempts: t.a, babies: t.b, found: t.f, solved: t.k >= 0, events: [] }),
+    // `p` is the route she walked, ~26 points as two base64url chars each, so the unfurl can draw it
+    token: (r) => ({ n: r.number, k: r.ticks, s: r.stars, a: r.attempts, b: r.babies, f: r.found, p: r.p || "" }),
+    fromToken: (t) => ({ number: t.n, ticks: t.k, stars: t.s, attempts: t.a, babies: t.b, found: t.f, solved: t.k >= 0, events: [], p: t.p || "" }),
+    // A finished run's card is the forest with her route on a map panel; an unplayed link gets the plate alone.
+    // Dynamically imported so the browser, which also loads this file, never pulls the rasteriser down.
+    cardArt: async ({ seed, number, result }) => {
+      if (!result || !result.solved || !result.p) return null
+      const { cardRoute } = await import("./src/game/card.mjs")
+      return cardRoute({ seed, number, result })
+    },
   },
 }
 

@@ -83,17 +83,28 @@ for (const [tag, w, h] of SIZES) {
   const page = await ctx.newPage()
   const errs = []
   page.on("pageerror", (e) => errs.push(String(e)))
+  // drive her along the solver's route; at a baby's cell she waits until it has joined (a sleeper needs her to
+  // stay, a wanderer may be at its other spot), and the input is re-sent now and then in case a blur zeroed it
   const drive = async (ms) => page.evaluate((ms) => new Promise((res) => {
-    const m = window.__mg; const route = m.lv.solve.route; let k = 0; const t0 = performance.now(); let lastD = -1, lastS = -1
+    const m = window.__mg; const lv = m.lv; const route = lv.solve.route; let k = 0; const t0 = performance.now(); let lastD = -1, lastS = -1, lastSend = 0, holdSince = -1
+    const owner = (wp, a) => { for (let b = 0; b < lv.babies.length; b++) { const si = lv.babies[b]; if (a.got.indexOf(si) >= 0) continue; const wd = (lv.wanderers || []).find((w) => w.baby === b); for (const sp of [lv.spots[si]].concat(wd ? [lv.spots[wd.to]] : [])) { const ex = sp.x + 0.5 - wp[0], ez = sp.z + 0.5 - wp[1]; if (ex * ex + ez * ez <= 2.3) return si } } return -1 }
     const iv = setInterval(() => {
       const a = m.att
       if (!a || performance.now() - t0 > ms) { clearInterval(iv); if (a) m.input(0, 0); res(!a); return }
-      while (k < route.length) { const dx = route[k][0] - a.x, dz = route[k][1] - a.z; if (dx * dx + dz * dz < 0.03) k++; else break }
+      let hold = false
+      while (k < route.length) {
+        const dx = route[k][0] - a.x, dz = route[k][1] - a.z, dd = dx * dx + dz * dz
+        const si = owner(route[k], a)
+        if (dd < (si >= 0 ? 0.0064 : 0.03)) {
+          if (si >= 0 && a.got.indexOf(si) < 0 && (holdSince < 0 || a.tick - holdSince < 12 * 30)) { if (holdSince < 0) holdSince = a.tick; hold = true; break }
+          holdSince = -1; k++
+        } else break
+      }
       if (k >= route.length) k = route.length - 1
-      const p = route[k]; const dx = p[0] - a.x, dz = p[1] - a.z
+      const p = k === route.length - 1 && a.got.length === lv.babies.length ? [lv.exit[0] + 0.5, lv.exit[1] + 0.5] : route[k]; const dx = p[0] - a.x, dz = p[1] - a.z
       const d = ((Math.round(Math.atan2(dz, dx) / (Math.PI * 2 / 32)) % 32) + 32) % 32
-      const s = dx * dx + dz * dz < 0.09 ? 2 : 4
-      if (d !== lastD || s !== lastS) { m.input(d, s); lastD = d; lastS = s }
+      const s = hold ? 0 : dx * dx + dz * dz < 0.09 ? (owner(p, a) >= 0 ? 1 : 2) : 4
+      if (d !== lastD || s !== lastS || a.s !== s || performance.now() - lastSend > 400) { m.input(d, s); lastD = d; lastS = s; lastSend = performance.now() }
     }, 25)
   }), ms)
   await page.goto(BASE + "/?debug&pump=1", { waitUntil: "networkidle" })
@@ -121,7 +132,7 @@ for (const [tag, w, h] of SIZES) {
   await page.waitForFunction(() => window.__mg && window.__mg.att, null, { timeout: 15000 })
   await page.waitForTimeout(1200)
   await check(page, tag + " daily start")
-  await drive(240000)
+  await drive(300000)
   await page.waitForTimeout(800)
   await check(page, tag + " run card", { noSheet: true })
   await page.getByRole("button", { name: /done for today/i }).click()

@@ -73,8 +73,12 @@ function play(cue, { rate = 1, gain = 1, pan = 0 } = {}) {
 
 export const sfx = {
   kit: (n) => play("kit", { rate: 1.15 + (n % 5) * 0.07 + Math.random() * 0.08 }),
+  // one of the line, quietly, from somewhere behind her
+  chirp: (n) => play("kit", { rate: 1.1 + (n % 5) * 0.07 + Math.random() * 0.1, gain: 0.3, pan: (Math.random() - 0.5) * 0.8 }),
   rustle: (pan) => play("rustle", { rate: 0.9 + Math.random() * 0.25, pan }),
-  step: () => play("step", { rate: 0.95 + Math.random() * 0.1 }),
+  // a sleeper: the rustle sample slowed right down reads as a snore
+  snore: (pan) => play("rustle", { rate: 0.45 + Math.random() * 0.1, gain: 0.7, pan }),
+  step: (mud) => play("step", { rate: mud ? 0.6 + Math.random() * 0.1 : 0.95 + Math.random() * 0.1, gain: mud ? 1.6 : 1 }),
   allfound: () => play("allfound"),
   done: () => { play("done"); duck(1.6) },
   music: () => { musicWanted = true; if (musicBuf) startMusic() },

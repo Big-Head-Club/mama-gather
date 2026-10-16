@@ -96,10 +96,10 @@ export function babyAt(lv, b, tick) {
   const period = 2 * (WANDER_DWELL + dash)
   const ph = ((tick % period) + period) % period
   if (ph < WANDER_DWELL) return { x: sp.x + 0.5, z: sp.z + 0.5, moving: false, at: 0 }
-  if (ph < WANDER_DWELL + dash) { const f = (ph - WANDER_DWELL) / dash; return { x: sp.x + 0.5 + (to.x - sp.x) * f, z: sp.z + 0.5 + (to.z - sp.z) * f, moving: true, at: -1, f } }
+  if (ph < WANDER_DWELL + dash) { const f = (ph - WANDER_DWELL) / dash; return { x: sp.x + 0.5 + (to.x - sp.x) * f, z: sp.z + 0.5 + (to.z - sp.z) * f, moving: true, at: -1, f, dir: 1 } }
   if (ph < 2 * WANDER_DWELL + dash) return { x: to.x + 0.5, z: to.z + 0.5, moving: false, at: 1 }
   const f = (ph - 2 * WANDER_DWELL - dash) / dash
-  return { x: to.x + 0.5 + (sp.x - to.x) * f, z: to.z + 0.5 + (sp.z - to.z) * f, moving: true, at: -1, f }
+  return { x: to.x + 0.5 + (sp.x - to.x) * f, z: to.z + 0.5 + (sp.z - to.z) * f, moving: true, at: -1, f, dir: -1 }
 }
 export const isSleeper = (lv, b) => !!(lv.sleepers && lv.sleepers.indexOf(b) >= 0)
 
