@@ -6,16 +6,20 @@
 // solve, decor }. `grid` is a flat row-major array of cell codes (sim.mjs C).
 
 import { makeRng } from "../core/rng.mjs"
-import { C, passable, cellAt } from "./sim.mjs"
+import { C, passable, cellAt, heightOf, HZ, WANDER_SPEED } from "./sim.mjs"
 import { solve, reach } from "./solver.mjs"
 import { SPECIES, DEFAULT_SPECIES } from "./kit.mjs"
 
+// hint: metres a hidden baby rustles from (wider on the big maps, where a first run otherwise lands at
+// 1.8x optimal). stuck: seconds without a find before the nearest baby rustles from anywhere. The
+// wrinkles: mud blobs (half speed), ponds (a wall to a fox), brush patches (tall grass that hides the
+// line), sleepers (she has to stay 1.5 s to wake one) and wanderers (a kit that runs between two spots).
 export const TIERS = {
-  tiny:   { babies: 3,  spots: 6,  size: 20, target: 30 },
-  small:  { babies: 5,  spots: 12, size: 30, target: 50 },
-  medium: { babies: 8,  spots: 22, size: 45, target: 90 },
-  big:    { babies: 12, spots: 36, size: 60, target: 120 },
-  huge:   { babies: 20, spots: 60, size: 80, target: 180 },
+  tiny:   { babies: 3,  spots: 6,  size: 20, target: 30,  hint: 5,   stuck: 15, mud: 0, water: 0, brush: 0, sleepers: 0, wanderers: 0 },
+  small:  { babies: 5,  spots: 12, size: 30, target: 50,  hint: 5.5, stuck: 20, mud: 2, water: 0, brush: 0, sleepers: 0, wanderers: 0 },
+  medium: { babies: 8,  spots: 22, size: 45, target: 90,  hint: 6.5, stuck: 25, mud: 3, water: 1, brush: 2, sleepers: 1, wanderers: 0 },
+  big:    { babies: 12, spots: 36, size: 60, target: 120, hint: 7.5, stuck: 30, mud: 4, water: 2, brush: 3, sleepers: 1, wanderers: 1 },
+  huge:   { babies: 20, spots: 60, size: 80, target: 180, hint: 8,   stuck: 30, mud: 6, water: 3, brush: 5, sleepers: 2, wanderers: 2 },
 }
 export const TIER_ORDER = ["tiny", "small", "medium", "big", "huge"]
 // The week's ramp: the early days are three babies, the weekend is the big one.
@@ -44,6 +48,7 @@ export function generate(seed, tierName = "tiny", speciesKey = DEFAULT_SPECIES, 
     if (!lv) continue
     if (!placeSpots(rng, lv, want)) continue
     if (!placeBabies(rng, lv, want)) continue
+    wrinkles(rng, lv, want)
     const sol = solve(lv)
     if (!sol) continue
     lv.solve = { ticks: sol.ticks, t3: sol.t3, t2: sol.t2, dist: Math.floor(sol.dist * 10) / 10, order: sol.order, route: sol.route }
@@ -59,7 +64,7 @@ export function generate(seed, tierName = "tiny", speciesKey = DEFAULT_SPECIES, 
 function layout(rng, tier, species) {
   const w = tier.size, h = tier.size
   const grid = new Array(w * h).fill(C.GROUND)
-  const lv = { w, h, grid, species: species.mom, ability: species.ability, tier: tier.size, spots: [], babies: [] }
+  const lv = { w, h, grid, species: species.mom, ability: species.ability, tier: tier.size, hint: tier.hint || 5, stuck: tier.stuck || 30, spots: [], babies: [], sleepers: [], wanderers: [] }
   const set = (x, z, c) => { if (x >= 0 && z >= 0 && x < w && z < h) grid[z * w + x] = c }
   const get = (x, z) => cellAt(lv, x, z)
 
@@ -103,6 +108,26 @@ function layout(rng, tier, species) {
     }
   }
 
+  // the wrinkles: ponds (thick blobs), mud (thin walks) and brush (thin walks), on open ground only
+  const blob = (code, n, len, thick) => {
+    for (let i = 0; i < n; i++) {
+      let x = rng.int(3, w - 4), z = rng.int(3, h - 4)
+      const steps = rng.int(len[0], len[1])
+      for (let k = 0; k < steps; k++) {
+        for (let dx = -thick; dx <= thick; dx++) for (let dz = -thick; dz <= thick; dz++) {
+          if (thick && dx && dz && rng.chance(0.4)) continue   // ragged corners
+          if (get(x + dx, z + dz) === C.GROUND && x + dx > 1 && z + dz > 1 && x + dx < w - 2 && z + dz < h - 2) set(x + dx, z + dz, code)
+        }
+        const d = rng.int(0, 3)
+        x += d === 0 ? 1 : d === 1 ? -1 : 0; z += d === 2 ? 1 : d === 3 ? -1 : 0
+        x = Math.max(3, Math.min(w - 4, x)); z = Math.max(3, Math.min(h - 4, z))
+      }
+    }
+  }
+  blob(C.WATER, tier.water || 0, [3, 6], 1)
+  blob(C.MUD, tier.mud || 0, [5, 12], 0)
+  blob(C.BRUSH, tier.brush || 0, [6, 14], 0)
+
   // ability terrain: fence lines anchored on the border, with a gap or two a fox can squeeze through.
   // Anchoring both ends on the edge makes the gap a real shortcut; an open end is just a wall to walk round.
   if (species.ability === "squeeze") {
@@ -119,7 +144,7 @@ function layout(rng, tier, species) {
         const x = vertical ? at : k, z = vertical ? k : at
         if (x <= 0 || z <= 0 || x >= w - 1 || z >= h - 1) continue
         const c = get(x, z)
-        if (c === C.PLATFORM || c === C.RAMP) continue
+        if (c === C.PLATFORM || c === C.RAMP || c === C.WATER) continue
         set(x, z, gaps.has(k) ? C.GAP : C.FENCE)
       }
     }
@@ -240,6 +265,54 @@ function placeBabies(rng, lv, tier) {
     if (!without || without.dist >= withA.dist * 1.1) return true
   }
   return false
+}
+
+// --- sleepers and wanderers ---------------------------------------------------
+
+// A wanderer needs an empty spot 3..8 m away with a clear straight run between the two at the same
+// height. A sleeper is any other baby.
+function wrinkles(rng, lv, tier) {
+  const B = lv.babies.length
+  const taken = new Set()
+  const want = Math.min(tier.wanderers || 0, B - 1)
+  const order = rng.shuffle(lv.babies.map((_, b) => b))
+  for (const b of order) {
+    if (lv.wanderers.length >= want) break
+    const sp = lv.spots[lv.babies[b]]
+    const cands = []
+    lv.spots.forEach((o, i) => {
+      if (lv.babies.indexOf(i) >= 0 || lv.wanderers.some((w) => w.to === i)) return
+      if (o.raised !== sp.raised) return
+      const dx = o.x - sp.x, dz = o.z - sp.z, d = Math.sqrt(dx * dx + dz * dz)
+      if (d < 3 || d > 8) return
+      if (!clearRun(lv, sp, o)) return
+      cands.push({ i, d })
+    })
+    if (!cands.length) continue
+    const c = rng.pick(cands)
+    lv.wanderers.push({ baby: b, to: c.i, dash: Math.floor(c.d / WANDER_SPEED * HZ + 0.999999) })
+    taken.add(b)
+  }
+  const rest = order.filter((b) => !taken.has(b))
+  for (let k = 0; k < (tier.sleepers || 0) && k < rest.length; k++) lv.sleepers.push(rest[k])
+  lv.sleepers.sort((a, b) => a - b)
+}
+function clearRun(lv, a, b) {
+  const hgt = a.raised ? 1 : 0
+  const ax = a.x + 0.5, az = a.z + 0.5, bx = b.x + 0.5, bz = b.z + 0.5
+  const dx = bx - ax, dz = bz - az, d = Math.sqrt(dx * dx + dz * dz)
+  const nx = -dz / d * 0.3, nz = dx / d * 0.3
+  const n = Math.ceil(d / 0.2)
+  for (let k = 0; k <= n; k++) {
+    const f = k / n
+    for (const side of [-1, 0, 1]) {
+      const x = Math.floor(ax + dx * f + nx * side), z = Math.floor(az + dz * f + nz * side)
+      if ((x === a.x && z === a.z) || (x === b.x && z === b.z)) continue
+      const c = cellAt(lv, x, z)
+      if (!passable(c, lv.ability) || c === C.RAMP || heightOf(c) !== hgt) return false
+    }
+  }
+  return true
 }
 
 // --- decoration ---------------------------------------------------------------

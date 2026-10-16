@@ -27,6 +27,19 @@ for (const tier of ["tiny", "small", "medium"]) {
   ok(`${tier}: the squeeze gaps shorten the best route by 10% or more on every seed`, abilityMatters === n, `${abilityMatters}/${n}`)
 }
 
+// the wrinkles: medium has a sleeper, big a wanderer with a clear run, and mud costs the solver what it costs the sim
+{
+  const lv = generate(901, "medium")
+  ok("medium carries one sleeper", lv.sleepers.length === 1, JSON.stringify(lv.sleepers))
+  const big = generate(902, "big")
+  ok("big carries a wanderer whose two spots are 3..8 m apart", big.wanderers.length === 1 && (() => { const w = big.wanderers[0]; const a = big.spots[big.babies[w.baby]], b = big.spots[w.to]; const d = Math.hypot(a.x - b.x, a.z - b.z); return d >= 3 && d <= 8 })(), JSON.stringify(big.wanderers))
+  ok("big has every wrinkle on the map", [C.MUD, C.WATER, C.BRUSH].every((c) => big.grid.indexOf(c) >= 0))
+  const sleeper = routeBot(901, "medium")
+  ok("a bot on the route wakes the sleeper and finishes medium inside three stars", sleeper.ticks > 0 && sleeper.ratio <= 1.25, `ratio ${sleeper.ratio.toFixed(3)}`)
+  const wander = routeBot(902, "big")
+  ok("a bot on the route catches the wanderer and finishes big inside three stars", wander.ticks > 0 && wander.ratio <= 1.25, `ratio ${wander.ratio.toFixed(3)}`)
+}
+
 // the solver's time is walkable: a bot on its route finishes inside the three-star window
 {
   let worst = 0

@@ -4,7 +4,7 @@
 // is therefore an upper bound on the true optimum, which keeps the star
 // thresholds honest: a player can always do at least this well.
 
-import { C, passable, heightOf, cellAt, PICKUP, EXIT_R, SPEED, HZ } from "./sim.mjs"
+import { C, passable, heightOf, speedOf, cellAt, PICKUP, EXIT_R, SPEED, HZ, SLEEP_TICKS, WANDER_DWELL } from "./sim.mjs"
 
 const SQRT2 = 1.4142135623730951
 export const STAR3 = 1.25, STAR2 = 1.75
@@ -54,7 +54,8 @@ export function distField(lv, sources, ability = lv.ability) {
       if (!ok(j)) continue
       const dh = heightOf(grid[j]) - hz
       if (dh > 0.5 || dh < -0.5) continue
-      let cost = 1
+      // a leg from centre to centre spends half its length in each cell, at each cell's speed
+      let cost = 0.5 / speedOf(grid[i]) + 0.5 / speedOf(grid[j])
       if (dx && dz) {
         // Diagonals only on level ground and never through a ramp: her collision box is 0.68 m wide,
         // so a diagonal step off a ramp's edge puts a corner into the cliff while her centre is still
@@ -64,7 +65,7 @@ export function distField(lv, sources, ability = lv.ability) {
         const a = z * w + nx, b = nz * w + x
         if (!ok(a) || !ok(b)) continue
         if (heightOf(grid[a]) !== hz || heightOf(grid[b]) !== hz || grid[a] === C.RAMP || grid[b] === C.RAMP) continue
-        cost = SQRT2
+        cost *= SQRT2
       }
       const nd = d + cost
       if (nd < dist[j]) { dist[j] = nd; parent[j] = i; push(nd, j) }
@@ -93,7 +94,7 @@ export function exitCells(lv, ability = lv.ability) {
   })
 }
 
-// Solve. Returns { dist (cells), ticks, t3, t2, order (baby indexes), route ([[x,z]...] cell centres) }
+// Solve. Returns { dist (cells, speed-weighted: a mud cell counts double), ticks, t3, t2, order (baby indexes), route ([[x,z]...] cell centres) }
 // or null when some baby or the exit cannot be reached.
 //
 // A baby is picked up at whichever cell of its disc the walk reaches first, and the walk carries
@@ -103,7 +104,14 @@ export function exitCells(lv, ability = lv.ability) {
 // fixed order chosen by a chain DP.
 export function solve(lv, ability = lv.ability) {
   const startIdx = lv.start[1] * lv.w + lv.start[0]
-  const discs = lv.babies.map((si) => pickupCells(lv, lv.spots[si], ability))
+  // a wanderer can be met at either of its spots; the walk to it is the shorter of the two
+  const discs = lv.babies.map((si, b) => {
+    const wd = lv.wanderers && lv.wanderers.find((w) => w.baby === b)
+    const cells = pickupCells(lv, lv.spots[si], ability)
+    if (!wd) return cells
+    for (const c of pickupCells(lv, lv.spots[wd.to], ability)) if (cells.indexOf(c) < 0) cells.push(c)
+    return cells
+  })
   const exits = exitCells(lv, ability)
   if (discs.some((c) => !c.length) || !exits.length) return null
   const B = discs.length
@@ -133,7 +141,9 @@ export function solve(lv, ability = lv.ability) {
   const [ed, ec] = dExit(seq[seq.length - 1])
   total += ed; pushSeg(fields[seq[seq.length - 1]], ec)
   const order = seq.slice(1).map((i) => owner[i])
-  const ticks = Math.floor(total / SPEED * HZ + 0.999999)
+  // a sleeper costs its wake; a wanderer costs half a dwell (it is where you are not, half the time)
+  const waits = (lv.sleepers ? lv.sleepers.length : 0) * SLEEP_TICKS + (lv.wanderers ? lv.wanderers.length : 0) * Math.floor(WANDER_DWELL / 2)
+  const ticks = Math.floor(total / SPEED * HZ + 0.999999) + waits
   return { dist: total, ticks, t3: Math.floor(ticks * STAR3), t2: Math.floor(ticks * STAR2), order, route }
 }
 

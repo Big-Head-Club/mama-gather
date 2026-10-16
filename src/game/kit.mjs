@@ -14,5 +14,6 @@ export const SPECIES = {
 }
 export const DEFAULT_SPECIES = "fox"
 
-// Which abilities open which cell codes. The solver and the sim both ask this.
-export const ABILITY_CELLS = { squeeze: ["GAP"], swim: ["WATER"], shove: ["BRUSH"] }
+// Which abilities open which cell codes. The solver and the sim both ask this. Brush is cover, not a
+// wall: everyone walks it, it only hides the line.
+export const ABILITY_CELLS = { squeeze: ["GAP"], swim: ["WATER"] }

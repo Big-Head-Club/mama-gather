@@ -2,9 +2,9 @@
 // drawn over it. Pure drawing; no three.js.
 import { C } from "./sim.mjs"
 
-const FILL = { [C.GROUND]: "#3f9a4a", [C.TREE]: "#1c5a2a", [C.ROCK]: "#8c8f85", [C.FENCE]: "#b0782f", [C.GAP]: "#e3b25a", [C.SPOT]: "#2f7a3b", [C.PLATFORM]: "#63b35e", [C.RAMP]: "#86c27a", [C.EXIT]: "#2a1a0e" }
+const FILL = { [C.GROUND]: "#3f9a4a", [C.TREE]: "#1c5a2a", [C.ROCK]: "#8c8f85", [C.FENCE]: "#b0782f", [C.GAP]: "#e3b25a", [C.SPOT]: "#2f7a3b", [C.PLATFORM]: "#63b35e", [C.RAMP]: "#86c27a", [C.EXIT]: "#2a1a0e", [C.WATER]: "#3aa7e8", [C.MUD]: "#6b4a2b", [C.BRUSH]: "#2e8a3a" }
 
-export function drawMap(canvas, lv, { route = null, babies = false, progress = 1, stars = 0 } = {}) {
+export function drawMap(canvas, lv, { route = null, optimal = null, babies = false, progress = 1, stars = 0 } = {}) {
   const g = canvas.getContext("2d")
   const W = canvas.width, H = canvas.height
   const s = Math.min(W / lv.w, H / lv.h)
@@ -29,6 +29,14 @@ export function drawMap(canvas, lv, { route = null, babies = false, progress = 1
   g.fillStyle = "#2a1a0e"; g.beginPath(); g.arc(ox + (lv.exit[0] + 0.5) * s, oy + (lv.exit[1] + 0.5) * s, s * 0.3, 0, Math.PI * 2); g.fill()
   // start
   g.fillStyle = "#fff1c7"; g.beginPath(); g.arc(ox + (lv.start[0] + 0.5) * s, oy + (lv.start[1] + 0.5) * s, s * 0.4, 0, Math.PI * 2); g.fill()
+  // the solver's route, dashed and pale, under hers: the answer to "why two stars"
+  if (optimal && optimal.length > 1) {
+    g.lineCap = "round"; g.lineJoin = "round"
+    g.setLineDash([s * 0.6, s * 0.5]); g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = Math.max(1.5, s * 0.22)
+    g.beginPath(); g.moveTo(ox + optimal[0][0] * s, oy + optimal[0][1] * s)
+    for (let i = 1; i < optimal.length; i++) g.lineTo(ox + optimal[i][0] * s, oy + optimal[i][1] * s)
+    g.stroke(); g.setLineDash([])
+  }
   if (route && route.length > 1) {
     const n = Math.max(2, Math.floor(route.length * Math.min(1, progress)))
     g.lineCap = "round"; g.lineJoin = "round"

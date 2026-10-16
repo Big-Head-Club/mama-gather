@@ -95,7 +95,7 @@ let html = await readFile(join(ROOT, "public/index.html"), "utf8")
 html = html
   .replace(/<!-- The unfurl[\s\S]*?-->\n?/, "")
   .split("\n")
-  .filter((line) => !/property="og:|name="twitter:|rel="manifest"|rel="apple-touch-icon"|src="\/t\.js"/.test(line))
+  .filter((line) => !/property="og:|name="twitter:|rel="manifest"|rel="apple-touch-icon"|src="\/t\.js"|gameaday\.xyz\/gameaday\.js/.test(line))
   .join("\n")
   .replace(/(href|src)="\/(?!\/)([^"?]+)(\?v=%BUILD%)?"/g, (_, attr, p) => `${attr}="./${p}"`)
   .replaceAll("%THEME%", esc(config.theme))
