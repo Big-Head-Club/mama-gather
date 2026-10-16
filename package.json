@@ -4,14 +4,19 @@
   "type": "module",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
-    "test": "node tools/assume.mjs check && node test/relay.test.mjs && node test/game.test.mjs",
+    "test": "node tools/assume.mjs check && node test/relay.test.mjs && node test/game.test.mjs && node test/sim.test.mjs",
     "assume": "node tools/assume.mjs",
     "new": "node tools/new-game.mjs",
     "card": "node tools/card.mjs",
     "brand": "node tools/brand.mjs",
     "sim:draft": "node tools/sim-draft.mjs",
     "sim:ladder": "node tools/sim-ladder.mjs",
-    "build:portal": "node tools/build-portal.mjs"
+    "build:portal": "node tools/build-portal.mjs",
+    "phone-check": "node tools/phone-check.mjs",
+    "card:shot": "node tools/card-shot.mjs",
+    "bot": "node tools/bot.mjs"
   },
-  "engines": { "node": ">=22.13" }
+  "engines": {
+    "node": ">=22.13"
+  }
 }

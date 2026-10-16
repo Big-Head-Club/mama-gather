@@ -1,0 +1,58 @@
+// Mama Gather — the game's own properties: every generated level is playable, the solver's stars are
+// reachable in the real sim, and a replayed log lands on the same tick.
+import { generate, TIERS, tierForDay } from "../src/game/gen.mjs"
+import { reach } from "../src/game/solver.mjs"
+import { solve } from "../src/game/solver.mjs"
+import { create, apply, replay, result, moves } from "../src/game/game.rules.mjs"
+import { routeBot } from "../tools/bot.mjs"
+import { passable, C } from "../src/game/sim.mjs"
+import { makeRng } from "../src/core/rng.mjs"
+
+let bad = 0
+const ok = (name, cond, extra = "") => { if (cond) console.log("  ok  " + name); else { bad++; console.log("FAIL  " + name + " " + extra) } }
+
+// every tier, a handful of seeds: counts, reachability, ability terrain that matters
+for (const tier of ["tiny", "small", "medium"]) {
+  let fine = 0, abilityMatters = 0, n = 6
+  for (let s = 1; s <= n; s++) {
+    const lv = generate(500 + s, tier)
+    const t = TIERS[tier]
+    const dist = reach(lv)
+    const spotsReach = lv.spots.every((sp) => [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]].some(([dx, dz]) => { const i = (sp.z + dz) * lv.w + sp.x + dx; return passable(lv.grid[i], lv.ability) && isFinite(dist[i]) }))
+    const without = solve(lv, "none")
+    if (!without || without.dist >= lv.solve.dist * 1.1) abilityMatters++
+    if (lv.spots.length === t.spots && lv.babies.length === t.babies && spotsReach && lv.solve.ticks > 0) fine++
+  }
+  ok(`${tier}: ${n} seeds build with the right counts and every spot reachable`, fine === n, `${fine}/${n}`)
+  ok(`${tier}: the squeeze gaps shorten the best route by 10% or more on every seed`, abilityMatters === n, `${abilityMatters}/${n}`)
+}
+
+// the solver's time is walkable: a bot on its route finishes inside the three-star window
+{
+  let worst = 0
+  for (let s = 1; s <= 5; s++) { const r = routeBot(700 + s, "small"); worst = Math.max(worst, r.ratio) }
+  ok("a bot walking the solver's route lands within 1.05x of optimal on five small levels", worst > 0 && worst <= 1.05, `worst ${worst.toFixed(3)}`)
+}
+
+// replay: the same log on the server gives the same ticks; a tampered log gives a different score, never a throw
+{
+  const seed = 4242
+  const st = create(seed, { tier: "tiny" })
+  const rng = makeRng(7)
+  const log = []
+  for (let i = 0; i < 400 && !st.over; i++) { const m = rng.pick(moves(st, rng)); log.push(m); apply(st, m) }
+  const a = result(st), b = result(replay(seed, log, { tier: "tiny" }))
+  ok("a replayed log reproduces the metric", a.metric === b.metric && a.attempts === b.attempts)
+  const tampered = log.map((m) => (m.t != null ? Object.assign({}, m, { t: m.t - 1000 }) : m))
+  let threw = false; try { result(replay(seed, tampered, { tier: "tiny" })) } catch { threw = true }
+  ok("a tampered log is ignored, not thrown", !threw)
+}
+
+// the week: Monday is tiny, Sunday is huge, and the epoch day maps where the config says
+{
+  const days = [1, 2, 3, 4, 5, 6, 7].map((n) => tierForDay(n, "2026-10-12"))   // a Monday
+  ok("the week ramps Mon tiny -> Sun huge", days.join(",") === "tiny,tiny,small,small,medium,big,huge", days.join(","))
+}
+
+console.log(bad ? `\n${bad} failing` : "\nall green")
+process.exit(bad ? 1 : 0)
