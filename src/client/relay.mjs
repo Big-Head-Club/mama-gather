@@ -289,9 +289,20 @@ function screenHome() {
     feet.append(creditsLink)
   }
   wrap.append(feet)
+  // our other games, under everything else on the door (gameaday shelf; in flow, never over play)
+  const shelf = el("div", "gad-shelf")
+  wrap.append(shelf)
+  gad((G) => G.shelf({ container: shelf, gameId: R.key }))
 
   $("#stage").append(wrap)
 }
+
+// The gameaday SDK loads deferred from another origin: call it when it is there, never let it touch the game.
+function gad(fn) {
+  const go = () => { if (window.GameADay) try { fn(window.GameADay) } catch {} }
+  if (window.GameADay) go(); else addEventListener("load", go, { once: true })
+}
+gad((G) => G.start({ gameId: R.key }))
 
 // One mount for every mode. `opts.seed` and `opts.params` are how a table hands
 // over its board and a quest leg hands over its difficulty and your army — the
@@ -419,6 +430,11 @@ async function screenResult(r, state) {
     const p = el("button", "btn ghost", "Practice again")
     p.onclick = () => startRun("practice")
     wrap.append(p)
+  }
+  if (r.mode === "daily") {
+    const end = el("div", "gad-end")
+    wrap.append(end)
+    gad((G) => G.end({ container: end, gameId: R.key, score: r.metric }))
   }
   $("#stage").append(wrap)
 

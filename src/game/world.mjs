@@ -486,11 +486,13 @@ function actor(t, scale, silColor) {
   const m = t.root.clone()
   m.scale.setScalar(scale)
   g.add(m)
-  // silhouette: same geometry, same bones, drawn where the depth test fails
-  const silMat = new THREE.MeshBasicMaterial({ color: silColor, transparent: true, opacity: 0.55, depthFunc: THREE.GreaterDepth, depthWrite: false })
+  // silhouette: same geometry, same bones, drawn where the depth test fails. Opaque and ordered world (0) ->
+  // silhouette (1) -> body (2), so only the WORLD can occlude it: a translucent one in the transparent pass
+  // came after the body and showed her own legs through her flank.
+  const silMat = new THREE.MeshBasicMaterial({ color: silColor, depthFunc: THREE.GreaterDepth, depthWrite: false })
   const adds = []
-  m.traverse((o) => { if (o.isMesh) adds.push(o) })
-  for (const o of adds) { const s = new THREE.Mesh(o.geometry, silMat); s.renderOrder = 10; s.position.copy(o.position); s.rotation.copy(o.rotation); s.scale.copy(o.scale); o.parent.add(s) }
+  m.traverse((o) => { if (o.isMesh) { adds.push(o); o.renderOrder = 2 } })
+  for (const o of adds) { const s = new THREE.Mesh(o.geometry, silMat); s.renderOrder = 1; s.position.copy(o.position); s.rotation.copy(o.rotation); s.scale.copy(o.scale); o.parent.add(s) }
   const mixer = new THREE.AnimationMixer(m)
   const actions = {}
   for (const c of t.clips) actions[c.name] = mixer.clipAction(c)
