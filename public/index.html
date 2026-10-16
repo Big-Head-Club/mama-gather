@@ -30,6 +30,7 @@
 <!-- Structure first, theme second. The theme is the file a game owns, so it has
      to be able to restyle anything app.css sets without fighting specificity —
      and it could not, because it loaded first and lost every tie. -->
+<script src="https://gameaday.xyz/gameaday.js" defer></script>
 <link rel="stylesheet" href="/app.css?v=%BUILD%">
 <link rel="stylesheet" href="/themes/%THEME%/theme.css?v=%BUILD%">
 <script>window.RELAY = %CONFIG%; window.BUILD = "%BUILD%";</script>
