@@ -1,0 +1,37 @@
+/* Dusk — a second theme, to prove the seam. Same variable names, same shapes,
+ * no gradients here either; only the palette and the display face move. */
+
+:root {
+  --ground: #12141c;
+  --panel: #1a1d27;
+  --panel-2: #232735;
+  --ink: #e8ecf5;
+  --ink-dim: #8b93a7;
+  --rule: #38405a;
+  --rule-soft: #262b3a;
+  --accent: #ffb020;
+  --accent-ink: #12141c;
+  --good: #5ecb8a;
+  --warn: #ff8a4c;
+
+  --display: 'Futura', 'Avenir Next', ui-sans-serif, system-ui, sans-serif;
+  --ui: ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius: 14px;
+  --rule-w: 1px;
+  --shadow-hard: 0 10px 30px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --ground: #eef1f7;
+  --panel: #ffffff;
+  --panel-2: #e3e8f2;
+  --ink: #171b26;
+  --ink-dim: #5d667c;
+  --rule: #c3cbdb;
+  --rule-soft: #dde3ee;
+  --accent: #b06a00;
+  --accent-ink: #ffffff;
+  color-scheme: light;
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Forest",
+  "note": "Mama Gather's field: a saturated fern green, dark surfaces as deep shades of it, chrome translucent over it. Accent is the fox.",
+  "colors": {
+    "ground": "#157a3a", "panel": "rgba(0,0,0,.26)", "ink": "#fbfff5", "inkDim": "rgba(251,255,245,.72)",
+    "rule": "rgba(255,255,255,.18)", "accent": "#ff8a3d", "accentInk": "#2b1200", "good": "#81b64c", "warn": "#d9a13b"
+  },
+  "card": { "ground": "#157a3a", "ink": "#fbfff5", "inkDim": "#cfeed6", "accent": "#ff8a3d" },
+  "type": {
+    "display": "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+    "ui": "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  }
+}

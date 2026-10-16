@@ -1,0 +1,14 @@
+{
+  "name": "Bold",
+  "note": "The house default: a bold saturated field, never a muted neutral (Mack, 2026-09-29: 'we make bold beautiful work'). Change the field to the game's own hue; keep dark surfaces as deep shades of it and chrome translucent over it.",
+  "colors": {
+    "ground": "#2a1060", "panel": "rgba(0,0,0,.22)", "ink": "#fbf7ff", "inkDim": "rgba(251,247,255,.7)",
+    "rule": "rgba(255,255,255,.18)", "accent": "#f2c14e", "accentInk": "#2a1060", "good": "#81b64c", "warn": "#d9a13b"
+  },
+  "card": { "ground": "#2a1060", "ink": "#fbf7ff", "inkDim": "#cfc3ee", "accent": "#f2c14e" },
+  "type": {
+    "display": "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+    "ui": "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  }
+}

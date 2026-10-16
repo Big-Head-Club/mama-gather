@@ -1,0 +1,58 @@
+/* Paper — the house theme.
+ *
+ * Three theme states, the way every page in this collection does it: the light
+ * palette lives on bare :root, dark is redefined under prefers-color-scheme AND
+ * under [data-theme="dark"] so an explicit toggle wins in both directions. Never
+ * give a colour its only definition inside a media query. */
+
+:root {
+  --ground: #f2e6cf;
+  --panel: #fbf5e9;
+  --panel-2: #e8ddca;
+  --ink: #14110e;
+  --ink-dim: #6b6152;
+  --rule: #14110e;
+  --rule-soft: #d2c7b2;
+  --accent: #b8281c;
+  --accent-ink: #faf1e0;
+  --good: #3f7d3a;
+  --warn: #8f5f04;
+
+  --display: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Franklin Gothic Bold', sans-serif;
+  --ui: ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius: 10px;
+  --rule-w: 2px;
+  --shadow-hard: 4px 4px 0 var(--rule);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0b0a09;
+    --panel: #131211;
+    --panel-2: #1c1a17;
+    --ink: #f4ecdd;
+    --ink-dim: #9a9182;
+    --rule: #f4ecdd;
+    --rule-soft: #2b2724;
+    --accent: #e2493a;
+    --accent-ink: #0b0a09;
+    --good: #7fae3e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0b0a09;
+  --panel: #131211;
+  --panel-2: #1c1a17;
+  --ink: #f4ecdd;
+  --ink-dim: #9a9182;
+  --rule: #f4ecdd;
+  --rule-soft: #2b2724;
+  --accent: #e2493a;
+  --accent-ink: #0b0a09;
+  --good: #7fae3e;
+  color-scheme: dark;
+}

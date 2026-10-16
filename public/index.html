@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" data-stage="%STAGE%">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>%TITLE%</title>
+<meta name="description" content="%DESC%">
+
+<!-- The unfurl. Rendered server-side per URL: a scraper does not run scripts,
+     so anything set from JavaScript is invisible to every chat client. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="%NAME%">
+<meta property="og:title" content="%TITLE%">
+<meta property="og:description" content="%DESC%">
+<meta property="og:image" content="%CARD%">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="%TITLE%">
+<meta property="og:url" content="%ORIGIN%">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="%TITLE%">
+<meta name="twitter:description" content="%DESC%">
+<meta name="twitter:image" content="%CARD%">
+<meta name="theme-color" content="#157a3a" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b3d1e" media="(prefers-color-scheme: dark)">
+
+<link rel="icon" href="/icon.svg?v=%BUILD%">
+<link rel="apple-touch-icon" href="/icon.png?v=%BUILD%">
+<link rel="manifest" href="/manifest.webmanifest">
+<!-- Structure first, theme second. The theme is the file a game owns, so it has
+     to be able to restyle anything app.css sets without fighting specificity —
+     and it could not, because it loaded first and lost every tie. -->
+<link rel="stylesheet" href="/app.css?v=%BUILD%">
+<link rel="stylesheet" href="/themes/%THEME%/theme.css?v=%BUILD%">
+<script>window.RELAY = %CONFIG%; window.BUILD = "%BUILD%";</script>
+</head>
+<body>
+<div id="app">
+  <!-- One centred column and nothing beside it.
+       There used to be a desktop rail here holding a leaderboard and a
+       countdown, and two icon buttons in the top corners — a "?" on the left
+       and a globe on the right. That composition is DELETED and is not to come
+       back: a letterboxed phone box pinned to the left of a page with two
+       widgets stacked beside it is not a designed page, and the two glyphs in
+       the corners were a menu nobody reads. Everything they held now lives on
+       the screens where it is relevant — the board and the crew on the front
+       screen, the countdown and the streak on the result. A game that wants a
+       different shell should build one; it should not inherit this one. -->
+  <header id="top">
+    <h1 id="wordmark">%NAME% <span id="num"></span></h1>
+  </header>
+
+  <main id="stage" aria-live="polite"></main>
+</div>
+
+<div id="sheet" class="sheet" hidden><div class="sheet-body" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status"></div>
+
+<!-- A controller, for the people who play on a TV or just have one in reach. It is a shim, not
+     an input system: the d-pad becomes arrow keys, and where a game does not want them it walks
+     the buttons on screen instead, so a game gets this without knowing about it. A game that
+     wants the stick itself reads window.pad. Remove the tag and nothing else changes.
+     Vendored rather than loaded from the shelf, because a portal build may not fetch from
+     another origin and a game should not go controller-less when that origin is down. -->
+<script defer src="/pad.js"></script>
+<script type="module" src="/src/client/relay.mjs?v=%BUILD%"></script>
+<script defer src="/t.js"></script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relay — a template for daily link-first games</title>
+<meta name="description" content="A template for daily web games whose primitive is a link you can paste into a group chat. Distilled from about forty-five of them.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Relay">
+<meta property="og:description" content="A template for daily web games whose primitive is a link you can paste into a group chat.">
+<meta property="og:image" content="%ORIGIN%/card-announce.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="%ORIGIN%">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg">
+<link rel="stylesheet" href="/themes/paper/theme.css">
+<style>
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--ui); font-size: 16px; line-height: 1.62;
+    padding: 0 22px max(64px, env(safe-area-inset-bottom));
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  main { max-width: 660px; margin: 0 auto; }
+
+  header { padding: clamp(56px, 12vw, 104px) 0 0; }
+  .mark {
+    font-family: var(--display); text-transform: uppercase; letter-spacing: .045em;
+    font-size: clamp(46px, 13vw, 78px); line-height: .92; font-weight: 400; margin: 0;
+  }
+  .lede { font-size: clamp(18px, 4.4vw, 22px); line-height: 1.45; margin: 18px 0 0; }
+  .sub { color: var(--ink-dim); margin: 14px 0 0; }
+
+  hr { border: 0; border-top: var(--rule-w) solid var(--rule); margin: 44px 0; }
+  h2 {
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 700; margin: 0 0 18px;
+  }
+  p { margin: 0 0 16px; }
+  strong { font-weight: 700; }
+
+  /* the annotated URL — the one thing on this page that has to land */
+  .url {
+    font-family: var(--mono); font-size: clamp(12px, 3.1vw, 15px); line-height: 2.1;
+    background: var(--panel-2); border: var(--rule-w) solid var(--rule);
+    border-radius: var(--radius); padding: 18px 16px; overflow-x: auto;
+    white-space: pre; margin: 0 0 18px;
+  }
+  .url b { color: var(--accent); font-weight: 400; }
+  .url span { color: var(--ink-dim); }
+
+  .cards { display: grid; gap: 14px; margin: 0 0 14px; }
+  @media (min-width: 620px) { .cards { grid-template-columns: 1fr 1fr; } }
+  .cards figure { margin: 0; }
+  .cards img {
+    display: block; width: 100%; height: auto;
+    border: var(--rule-w) solid var(--rule); border-radius: var(--radius);
+  }
+  .cards figcaption { font-size: 13px; color: var(--ink-dim); margin-top: 8px; }
+
+  /* The label column is as wide as the longest label and no wider — the widest
+     term sets it, rather than a percentage picked out of the air. */
+  ul.built { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: max-content 1fr; }
+  ul.built li { display: contents; }
+  ul.built b { font-weight: 700; padding: 11px 22px 11px 0; border-bottom: 1px solid var(--rule-soft); }
+  ul.built span { color: var(--ink-dim); padding: 11px 0; border-bottom: 1px solid var(--rule-soft); }
+  ul.built li:last-child b, ul.built li:last-child span { border-bottom: 0; }
+  /* Below the point where two columns stop fitting, the label sits on its own
+     line. That point is where the text starts to look cramped, not a round number. */
+  @media (max-width: 560px) {
+    ul.built { display: block; }
+    ul.built li { display: block; padding: 11px 0; border-bottom: 1px solid var(--rule-soft); }
+    ul.built li:last-child { border-bottom: 0; }
+    ul.built b, ul.built span { display: block; padding: 0; border-bottom: 0; }
+  }
+
+  pre.sh {
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.8;
+    background: var(--panel-2); border: var(--rule-w) solid var(--rule);
+    border-radius: var(--radius); padding: 16px; overflow-x: auto; margin: 0 0 16px;
+  }
+  pre.sh i { color: var(--ink-dim); font-style: normal; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 0; }
+  .cta {
+    display: inline-block; padding: 14px 24px; font-weight: 700; text-decoration: none;
+    color: var(--accent-ink); background: var(--accent);
+    border: var(--rule-w) solid var(--rule); border-radius: var(--radius);
+    box-shadow: var(--shadow-hard); transition: transform .06s, box-shadow .06s;
+  }
+  .cta.ghost { background: var(--panel); color: var(--ink); }
+  .cta:active { transform: translate(2px, 2px); box-shadow: none; }
+
+  blockquote {
+    margin: 0 0 16px; padding: 0 0 0 18px; border-left: 3px solid var(--accent);
+    font-size: clamp(17px, 4.2vw, 20px); line-height: 1.45;
+  }
+  footer { color: var(--ink-dim); font-size: 13.5px; padding-top: 8px; }
+  a { color: var(--ink); text-decoration-color: var(--ink-dim); text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1 class="mark">Relay</h1>
+  <p class="lede">A template for daily web games whose primitive is a link you can paste into a group chat.</p>
+  <p class="sub">Distilled out of about forty-five of them. It makes one game — run it once for something you keep for years, or once a week. Nothing in it assumes you are making more than this one.</p>
+  <div class="actions">
+    <a class="cta" href="/play">Play the demo</a>
+    <a class="cta ghost" href="https://github.com/Big-Head-Club/relay">Source</a>
+  </div>
+</header>
+
+<hr>
+
+<h2>The primitive</h2>
+<div class="url">yourgame.xyz<b>/d/37</b>?<b>c=K7RM2P</b>&amp;<b>r=eyJuIjozNy…</b>
+             <span>│</span>      <span>│</span>          <span>└ your result, for the card</span>
+             <span>│</span>      <span>└ your group's own puzzle</span>
+             <span>└ which day — old links still work</span></div>
+<p>A link that unfurls into something worth tapping, opens straight into today's puzzle, and hands back a new link when you finish. Everything else exists to make that one line good.</p>
+
+<hr>
+
+<h2>Why the card is the whole thing</h2>
+<div class="cards">
+  <figure>
+    <img src="/card-announce.png" alt="An unfurl card reading KEYHOLE #1, a new lock every day.">
+    <figcaption>What a game link says.</figcaption>
+  </figure>
+  <figure>
+    <img src="/card-result.png" alt="An unfurl card reading KEYHOLE #37, OPENED IN 2, 2 of 6 tries, 41 seconds.">
+    <figcaption>What a <em>result</em> link says.</figcaption>
+  </figure>
+</div>
+<p>Nearly every game this was distilled from shipped one static image with the production URL hardcoded into the page. The first card tells a chat that a game exists. The second is a scoreboard nobody has to open, and it is the reason the next person taps.</p>
+<p>Relay renders it per link, server-side, from a token in the URL — no database lookup, so it works for practice runs, private crews and old days too. Zero dependencies: there is a PNG encoder and a bitmap face in the repo.</p>
+
+<hr>
+
+<h2>Built in</h2>
+<ul class="built">
+  <li><b>Crews</b><span>Six characters in the query string salt the daily seed, so a group chat gets a puzzle nobody outside it has seen. No rooms, no lobbies, no realtime.</span></li>
+  <li><b>Practice gate</b><span>A first-time player gets one throwaway round before their first daily, and is told it did not count.</span></li>
+  <li><b>Verified runs</b><span>The client submits the moves it made, not the score. The server replays them through the same rules file.</span></li>
+  <li><b>Leaderboard &amp; streaks</b><span>Per day, per crew, ranked by whichever metric you declare.</span></li>
+  <li><b>Archive</b><span>Any past day of your game is still playable, so a link from six weeks ago still opens something.</span></li>
+  <li><b>Anonymous by default</b><span>No sign-in. A name is asked for once, after it has already earned a rank, and can be declined.</span></li>
+  <li><b>Themes</b><span>A theme is a folder. Same ruleset, different game to the person playing it.</span></li>
+  <li><b>Offline tolerant</b><span>Fully playable with the server down; the score just does not post.</span></li>
+</ul>
+
+<hr>
+
+<h2>Mobile or laptop</h2>
+<p>Mobile first, laptop respectable. The mechanism that makes that one build rather than two is a <strong>fixed portrait stage</strong> — a 10:16 box, identical on every device. On a phone it is the screen. On a laptop it is a framed play surface with the board and the countdown beside it, rather than a phone screenshot stranded in grey. Because the box is the same everywhere, what was on screen is the same rectangle for every player, which is what makes a daily fair.</p>
+<blockquote>If it needs a keyboard, it is not a link game.</blockquote>
+
+<hr>
+
+<h2>It questions its own assumptions</h2>
+<p>Every game built on the template carries an assumption ledger, and <code>npm test</code> fails while any of it is unanswered. Five are checked by machine — by playing your game at random: does every run actually end, does the leaderboard metric ever vary, is the share strip becoming a fingerprint for the answer, is the rules file still free of the clock, does the tutorial seed collide with a real day.</p>
+<p>The rest need a sentence from you. The one that gets the laziest answers is <em>what makes day 30 different from day 3</em>.</p>
+<p>When one turns out to be wrong, one command flips it and opens a lesson stub with the assumption and the reality already filled in — because a broken assumption <em>is</em> the lesson, and that is the only moment it is cheap to write down. Finished lessons get promoted back into the template, attributed and dated, so the next game starts from them.</p>
+
+<hr>
+
+<h2>Starting one</h2>
+<pre class="sh">node tools/new-game.mjs sixes "Sixes" ~/games/sixes
+<i># then: answer ASSUMPTIONS.md, write two files, npm test</i></pre>
+<p>Node 20 or later. No dependencies, no build step — the browser imports the same modules the server does. Deploys to Railway as it stands.</p>
+
+<div class="actions">
+  <a class="cta" href="/play">Play the demo</a>
+  <a class="cta ghost" href="https://github.com/Big-Head-Club/relay">Read the source</a>
+</div>
+
+<hr>
+<footer>The demo is Keyhole: four symbols from six, six tries. It is the reference game, not a good one — that part is your job.</footer>
+
+</main>
+<script defer src="/t.js"></script>
+</body>
+</html>

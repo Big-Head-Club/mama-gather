@@ -1,0 +1,21 @@
+{
+  "name": "Paper",
+  "note": "The house look: printed, not glassy. Cream stock, full-ink rules, hard offset shadows. No gradients, no glows, no backdrop blur.",
+  "colors": {
+    "ground": "#f2e6cf",
+    "panel": "#fbf5e9",
+    "ink": "#14110e",
+    "inkDim": "#6b6152",
+    "rule": "#14110e",
+    "accent": "#b8281c",
+    "accentInk": "#faf1e0",
+    "good": "#3f7d3a",
+    "warn": "#8f5f04"
+  },
+  "card": { "ground": "#f2e6cf", "ink": "#14110e", "inkDim": "#6b6152", "accent": "#b8281c" },
+  "type": {
+    "display": "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif",
+    "ui": "ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  }
+}

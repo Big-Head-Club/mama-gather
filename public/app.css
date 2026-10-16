@@ -1,0 +1,212 @@
+/* Structure only. Every colour comes from the theme, so app.css never changes
+ * when you swap themes/<name>/. */
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%;
+  background: var(--ground); color: var(--ink);
+  font-family: var(--ui);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* THE GAME IS THE WINDOW.
+ *
+ * This used to be a framed 10:16 box centred on the page with the game's name
+ * printed above it — and printed again inside it on the front screen. On a
+ * laptop that reads as a mockup of a phone app, not the app ("stop making the
+ * iphone apps embedded pages with weird ui hanging off them like a title
+ * twice", SING BACK, 2026-09-12). So the stage IS the window now: full height,
+ * no border, no shadow, no radius, the ground painted on the body, the name
+ * said once.
+ *
+ * What the fixed box bought — the same rectangle for every player — is a
+ * property of the PLAY SURFACE, not of the page. Content sits in a column
+ * (--play-max) so a board is the same shape on a phone and a laptop, and a
+ * game that genuinely needs the old identical box sets `stage: "fixed"` in
+ * relay.config.mjs. */
+#app {
+  height: 100%; height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "top" "stage";
+  padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+/* The host wordmark is gone from the default page: the front screen already
+   says the name, big, and saying it twice was the mockup. It stays in the DOM
+   (the number lives in it) for the fixed-stage look, which shows it. */
+#top { display: none; }
+[data-stage="fixed"] #app {
+  max-width: 520px; margin: 0 auto;
+  padding: 0 max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-bottom));
+}
+[data-stage="fixed"] #top {
+  grid-area: top;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: max(10px, env(safe-area-inset-top)) 2px 10px;
+}
+#wordmark {
+  font-family: var(--display); font-size: clamp(20px, 5.5vw, 30px);
+  letter-spacing: .04em; text-transform: uppercase; margin: 0; font-weight: 400;
+}
+#wordmark span { color: var(--accent); }
+.chip {
+  min-width: 42px; min-height: 42px; border-radius: var(--radius);
+  border: var(--rule-w) solid var(--rule); background: var(--panel); color: var(--ink);
+  font: inherit; font-size: 15px; cursor: pointer;
+}
+.chip:active { transform: translateY(1px); }
+
+/* THE STAGE IS THE GAME, AND IT FILLS THE WINDOW.
+ *
+ * No frame. Every direct child sits in one centred play column (--play-max) so
+ * a board keeps its shape on a laptop instead of stretching to 1440px; a
+ * game's full-bleed layer (a splash, a backdrop) opts out by being absolutely
+ * positioned or by carrying [data-bleed]. */
+#stage {
+  grid-area: stage;
+  position: relative;                 /* a game's splash layer anchors to this */
+  width: 100%; min-height: 0;
+  display: flex; flex-direction: column;
+  container-type: inline-size;
+  background: var(--ground);
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+#stage > * { width: 100%; max-width: var(--play-max, 560px); margin-inline: auto; }
+#stage > [data-bleed] { max-width: none; }
+
+/* stage: "fixed" — the old identical 10:16 box, for a game whose fairness
+   genuinely depends on every player seeing the same rectangle. */
+[data-stage="fixed"] #stage {
+  max-width: 420px; margin: 0 auto;
+  aspect-ratio: 10 / 16; max-height: 100%;
+  background: var(--panel);
+  border: var(--rule-w) solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  padding: 18px;
+}
+
+/* A screen fills the stage and centres itself; a game usually wants the whole
+   height instead, so it just does not use this. */
+.screen { margin-block: auto; }
+/* When a game has drawn its own title backdrop, the words need a ground to be
+   read on. A BAR on the bottom edge, carried out to the window edges — not a
+   rounded card floating over the art. */
+.screen.on-splash {
+  position: relative; z-index: 1;
+  margin-block: auto 0;               /* sit at the foot, so the game's own
+                                         backdrop is not hidden behind the words */
+  background: var(--ground);
+  box-shadow: 0 0 0 100vmax var(--ground);
+  clip-path: inset(0 -100vmax -100vmax);
+  border-top: 1px solid var(--rule-soft);
+  padding: 20px 0 4px;
+}
+[data-stage="fixed"] .screen.on-splash {
+  background: color-mix(in srgb, var(--ground) 90%, transparent);
+  box-shadow: none; clip-path: none;
+  border: var(--rule-w) solid var(--rule-soft);
+  border-radius: var(--radius);
+  padding: 20px 14px;
+}
+/* A TITLE MUST NEVER BREAK MID-WORD. `.big` sets overflow-wrap:anywhere so a
+   long RESULT headline can wrap rather than overflow, which is right there and
+   wrong here: over a splash the one string is the game's name, and
+   "HOUSEKEEPIN / G" is not a title screen, it is a bug. Shrink it, never break
+   it. */
+.screen.on-splash .big {
+  font-size: clamp(20px, 8.2cqw, 38px);
+  overflow-wrap: normal; word-break: keep-all; hyphens: none;
+}
+.btn {
+  display: block; width: 100%; min-height: 52px; padding: 14px;
+  font: inherit; font-weight: 700; font-size: 17px; cursor: pointer;
+  color: var(--accent-ink); background: var(--accent);
+  border: var(--rule-w) solid var(--rule); border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+}
+.btn:active { transform: translate(2px, 2px); box-shadow: none; }
+.btn.ghost { background: var(--panel); color: var(--ink); }
+.btn + .btn { margin-top: 10px; }
+.label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+/* Headlines are written by the game and can be any length, so this has to wrap
+   rather than trust the author. A clipped result is the last thing a player
+   sees before they decide whether to share. */
+.big {
+  font-family: var(--display); font-size: clamp(26px, 11cqw, 52px);
+  line-height: .95; letter-spacing: .02em;
+  overflow-wrap: anywhere; text-wrap: balance;
+}
+.strip { font-size: 22px; letter-spacing: 2px; line-height: 1.5; word-break: break-all; }
+.row { display: flex; gap: 12px; }
+.row > * { flex: 1; }
+.center { text-align: center; }
+.muted { color: var(--ink-dim); }
+.stack > * + * { margin-top: 14px; }
+
+/* Where a game draws what the player just made, above the headline. It gets
+   the width and whatever height it asks for; most of the stage is empty on a
+   result screen anyway. */
+.resultart { display: flex; justify-content: center; }
+.resultart canvas { display: block; border-radius: 8px; max-width: 100%; }
+
+/* The foot of the front screen: the things the corner icons used to hide. */
+.feet { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin-top: 4px; }
+.textlink {
+  background: none; border: 0; padding: 6px 2px; font: inherit; font-size: 13px;
+  color: var(--ink-dim); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+
+/* The bot level picker: three flat segments in a bar, the chosen one filled. */
+.seg { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; }
+.seg .label { margin-right: 10px; }
+.seg-opt {
+  font: inherit; font-size: 14px; padding: 8px 14px; cursor: pointer;
+  background: var(--panel); color: var(--ink); border: var(--rule-w) solid var(--rule); margin-left: calc(-1 * var(--rule-w));
+}
+.seg-opt[aria-checked="true"] { background: var(--accent); color: var(--ground); }
+.textlink:hover { color: var(--ink); }
+
+/* The credits screen, the same shape as steam-shell's: a plain list, the thing
+   linked, "by" the maker dimmed, the licence in mono. Nothing boxed. */
+.credits { overflow-y: auto; max-height: 100%; }
+.credits h2 { font: 600 12px/1 var(--mono); letter-spacing: .22em; color: var(--ink-dim); margin: 28px 0 10px; }
+.credit-list { list-style: none; margin: 0; padding: 0; font-size: 15px; line-height: 1.5; }
+.credit-list li { padding: 8px 0; border-top: 1px solid var(--rule-soft); }
+.credit-list a { color: var(--ink); text-underline-offset: 3px; }
+.credit-list .who { color: var(--ink-dim); }
+.credit-list .lic { font: 11px var(--mono); color: var(--ink-dim); margin-left: 8px; }
+.credits .btn { margin-top: 24px; }
+
+ol.board { list-style: none; margin: 0; padding: 0; font-variant-numeric: tabular-nums; }
+ol.board li { display: flex; gap: 10px; padding: 7px 6px; border-radius: 6px; font-size: 14px; }
+ol.board li:nth-child(odd) { background: var(--panel-2); }
+ol.board li.me { outline: var(--rule-w) solid var(--accent); }
+ol.board .r { width: 26px; text-align: right; color: var(--ink-dim); }
+ol.board .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.board .v { font-weight: 700; }
+
+.sheet {
+  position: fixed; inset: 0; z-index: 40; display: grid; place-items: end center;
+  background: rgba(0,0,0,.45); padding: 0;
+}
+.sheet[hidden] { display: none; }
+.sheet-body {
+  width: min(460px, 100%); max-height: 88vh; overflow-y: auto;
+  background: var(--panel); color: var(--ink);
+  border: var(--rule-w) solid var(--rule); border-radius: var(--radius) var(--radius) 0 0;
+  padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
+}
+@media (min-width: 700px) { .sheet { place-items: center; } .sheet-body { border-radius: var(--radius); } }
+
+#toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 14px);
+  background: var(--ink); color: var(--ground); padding: 10px 16px; border-radius: 999px;
+  font-size: 14px; opacity: 0; pointer-events: none; transition: .2s; z-index: 60;
+}
+#toast.on { opacity: 1; transform: translate(-50%, 0); }

@@ -1,0 +1,21 @@
+{
+  "name": "Dusk",
+  "note": "Same bones, different room. Proof that a theme is a folder: nothing but colour and type changed between this and Paper.",
+  "colors": {
+    "ground": "#12141c",
+    "panel": "#1a1d27",
+    "ink": "#e8ecf5",
+    "inkDim": "#8b93a7",
+    "rule": "#38405a",
+    "accent": "#ffb020",
+    "accentInk": "#12141c",
+    "good": "#5ecb8a",
+    "warn": "#ff8a4c"
+  },
+  "card": { "ground": "#12141c", "ink": "#e8ecf5", "inkDim": "#8b93a7", "accent": "#ffb020" },
+  "type": {
+    "display": "'Futura', 'Avenir Next', ui-sans-serif, system-ui, sans-serif",
+    "ui": "ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  }
+}
