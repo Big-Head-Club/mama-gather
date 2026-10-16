@@ -24,5 +24,23 @@ const ok = (name, cond, extra = "") => {
   }
 }
 
+// nothing the browser loads may reach a node: module (card.mjs once pulled node:fs into the rules file and blanked the game)
+{
+  const { readFileSync } = await import("node:fs")
+  const { resolve, dirname } = await import("node:path")
+  const seen = new Set(), hits = []
+  const walk = (file) => {
+    if (seen.has(file)) return; seen.add(file)
+    const src = readFileSync(file, "utf8")
+    for (const m of src.matchAll(/^\s*(?:import|export)[^"'\n]*from\s+["']([^"']+)["']/gm)) {
+      const spec = m[1]
+      if (spec.startsWith("node:")) { hits.push(file.replace(process.cwd() + "/", "") + " -> " + spec); continue }
+      if (spec.startsWith(".")) walk(resolve(dirname(file), spec))
+    }
+  }
+  for (const entry of ["src/game/game.rules.mjs", "src/game/game.view.mjs"]) walk(resolve(entry))
+  ok("the browser's import graph never reaches a node: module", hits.length === 0, hits.join(", "))
+}
+
 console.log(bad ? `\n${bad} failing` : "\nall green")
 process.exit(bad ? 1 : 0)
