@@ -21,3 +21,13 @@ A solver that treats a pickup disc as one node teleports inside it. A baby's dis
 
 Followers that track the leader's path exactly read as a snake. Mack: 'they gotta follow way less accurately, they are sloppy followers'. Each follower wants its own lag, sideways wobble, capped velocity so it cuts corners and overshoots, and a reason to stop now and then.
 
+
+## note
+
+A 30 Hz sim drawn straight onto a 60 Hz screen moves the player every other frame; Mack: 'the walking is so jittery'. Keep last-tick and this-tick positions in the sim and draw between them by the clock's fraction of a tick.
+
+
+## note
+
+The Relay scaffold's index.html does not load gameaday.js and its client has no shelf; hideseek added both by hand and so did this game. ship-check's gameaday:shelf is the only thing that notices. Worth moving into the template.
+
