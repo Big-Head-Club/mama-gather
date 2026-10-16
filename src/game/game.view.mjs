@@ -138,6 +138,9 @@ export default {
 
   mount(root, { seed, mode, number, coach, finish }) {
     css(); mountTweaks()
+    // the host queued its start event a moment ago; flush it before the level generates and the models parse,
+    // or the batch timer fires seconds late and the start looks lost
+    try { window.tally && window.tally.flush && window.tally.flush() } catch {}
     const state = create(seed, { number })
     const lv = state.level
     const species = SPECIES[lv.species] || SPECIES.fox
