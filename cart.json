@@ -1,0 +1,17 @@
+{
+  "slug": "mama-gather",
+  "name": "Mama Gather",
+  "designers": ["mack"],
+  "started": "2026-10-16",
+  "tags": ["Daily", "Web", "3D", "Race", "Kids"],
+  "family": "mama-gather",
+  "variant": "",
+  "url": "https://mama-gather-production.up.railway.app",
+  "repo": "Big-Head-Club/mama-gather",
+  "state": "none",
+  "platform": "both",
+  "category": "race",
+  "description": "You are a fox mother in a forest. Find your kits hidden in logs, ferns and burrows, and they fall in line behind you. Collect them all and reach the den; the only question is how fast.",
+  "plate": "public/plate.jpg",
+  "hidden": true
+}

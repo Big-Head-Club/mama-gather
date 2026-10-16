@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>card</title>
+<style>html,body{margin:0;background:#157a3a;overflow:hidden}#host{position:relative;width:1200px;height:630px}.mg-canvas{position:absolute;inset:0;width:100%;height:100%}</style></head>
+<body><div id="host"></div>
+<script>window.BUILD=""</script>
+<script type="module">
+// The share card, shot from the real game: the forest, her, and a long line of kits behind her.
+// tools/card-shot.mjs screenshots this at 1200x630 into themes/forest/card.png. No words on it.
+import { makeWorld } from "/src/game/world.mjs"
+import { create, apply, advance } from "/src/game/game.rules.mjs"
+import { DIRS, NDIRS } from "/src/game/sim.mjs"
+const q = new URLSearchParams(location.search)
+const seed = Number(q.get("seed") || 11)
+const ticks = Number(q.get("ticks") || 300)
+const state = create(seed, { tier: q.get("tier") || "big" })
+const lv = state.level
+const host = document.getElementById("host")
+const w = await makeWorld(host, lv, { lookOpts: { viewH: Number(q.get("viewH") || 8.5), camLift: 1 } })
+apply(state, { r: 1 })
+// every kit is already hers: they sprint in from their spots and settle into the line as she walks
+state.att.got = lv.babies.slice(); state.att.gotAt = lv.babies.map(() => 0)
+const route = lv.solve.route
+let k = 0, lastD = -1
+const heading = (a, p) => { const dx = p[0] - a.x, dz = p[1] - a.z; let best = 0, bd = -2; for (let d = 0; d < NDIRS; d++) { const dot = DIRS[d][0] * dx + DIRS[d][1] * dz; if (dot > bd) { bd = dot; best = d } } return best }
+let now = 0
+for (let i = 0; i < ticks; i++) {
+  const a = state.att
+  while (k < route.length) { const dx = route[k][0] - a.x, dz = route[k][1] - a.z; if (dx * dx + dz * dz < 0.05) k++; else break }
+  if (k >= route.length) k = route.length - 1
+  const d = heading(a, route[k])
+  if (d !== lastD) { apply(state, { t: a.tick, d, s: 4 }); lastD = d }
+  advance(state, a.tick + 1)
+  now += 1000 / 30
+  w.frame(now, { att: state.att })
+}
+window.__cardReady = true
+</script></body></html>

@@ -38,7 +38,7 @@ function audit() {
     if (!visible(e)) continue
     // a fixed backdrop or a tile inside a wordmark is decoration, not content
     // the house canvas and the front-screen backdrop are the ground everything sits on
-    if (e.matches("canvas.board, canvas.board3d, [data-bleed]")) continue
+    if (e.matches("canvas.board, canvas.board3d, [data-bleed], canvas.mg-canvas, .mg-dbg")) continue
     seen.push(e)
   }
   const out = []
@@ -121,7 +121,7 @@ for (const [tag, w, h] of SIZES) {
   await page.waitForFunction(() => window.__mg && window.__mg.att, null, { timeout: 15000 })
   await page.waitForTimeout(1200)
   await check(page, tag + " daily start")
-  await drive(90000)
+  await drive(240000)
   await page.waitForTimeout(800)
   await check(page, tag + " run card", { noSheet: true })
   await page.getByRole("button", { name: /done for today/i }).click()

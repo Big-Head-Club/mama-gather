@@ -1,0 +1,6 @@
+{
+  "name": "Mama Gather",
+  "stage": ".mg, #stage",
+  "ready": "button",
+  "roundtrip": "none: scores are re-simulated from the stick log on the server; nothing is written by the client"
+}

@@ -109,16 +109,20 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
   sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.04
   scene.add(sun); scene.add(sun.target)
 
-  // the forest floor beyond the level
+  // the forest floor beyond the level, and the level's own ground as one plane (a tile per cell showed
+  // hairline seams between instances)
   const beyond = new THREE.Mesh(new THREE.PlaneGeometry(lv.w * 4, lv.h * 4), new THREE.MeshLambertMaterial({ color: COL.deep }))
   beyond.rotation.x = -Math.PI / 2; beyond.position.set(lv.w / 2, -0.06, lv.h / 2); beyond.receiveShadow = true
   scene.add(beyond)
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(lv.w, lv.h), new THREE.MeshStandardMaterial({ color: 0x2cd8b8, roughness: 1, metalness: 0 }))
+  floor.rotation.x = -Math.PI / 2; floor.position.set(lv.w / 2, 0, lv.h / 2); floor.receiveShadow = true
+  scene.add(floor)
 
   const world = new THREE.Group(); scene.add(world)
   const species = SPECIES[lv.species] || SPECIES.fox
 
   // --- load everything we need
-  const need = new Set(["ground_grass", "cliff_block_rock", "cliff_blockSlope_rock", "fence_simple", "fence_simpleLow", "cliff_cave_rock", "rock_largeB", "grass_large", "animal-" + species.mom, ...TREES, ...ROCKS, ...DECOR])
+  const need = new Set(["cliff_block_rock", "cliff_blockSlope_rock", "fence_simple", "fence_simpleLow", "cliff_cave_rock", "rock_largeB", "grass_large", "animal-" + species.mom, ...TREES, ...ROCKS, ...DECOR])
   for (const s of SPOT_MODELS[lv.species] || SPOT_MODELS.fox) if (s.key !== "burrow") need.add(s.key)
   const models = {}
   await Promise.all([...need].map((k) => loadModel(k).then((t) => { models[k] = t })))
@@ -140,7 +144,6 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
       place("cliff_blockSlope_rock", cx, cz, 0, 1, rot)
       continue
     }
-    place("ground_grass", cx, cz, 0, 1, 0)
     if (c === C.TREE) {
       const key = TREES[Math.floor(r * TREES.length)]
       place(key, cx + (h32(x, z, 1) - 0.5) * 0.3, cz + (h32(x, z, 2) - 0.5) * 0.3, 0, 1.55 + h32(x, z, 3) * 0.5, r * 6.283)
@@ -386,7 +389,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
             kp.x += (goal.x - kp.x) * Math.min(1, dt * 7)
             kp.z += (goal.z - kp.z) * Math.min(1, dt * 7)
             kp.y = gy + Math.sin(e * Math.PI) * 0.9
-            k.g.scale.setScalar(momScale * 0.42 * (0.6 + 0.4 * e))
+            k.g.scale.setScalar(0.6 + 0.4 * e)   // the group only; the model inside already carries the kit scale
             k.vx = 0; k.vz = 0
           } else {
             // steer: a lagging, capped velocity so it cuts corners and overshoots, and sprints when far behind
@@ -449,7 +452,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
       renderer.render(scene, camera)
     },
     // for the splash: drive mom along a path of points
-    splashStep(now, pts) {
+    splashStep(now, pts, nKits = 5) {
       if (!resize()) return
       const dt = Math.min(0.05, lastNow ? (now - lastNow) / 1000 : 0.016); lastNow = now
       const t = now / 1000
@@ -460,7 +463,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {} } = {}
       dropCrumb(x, z)
       mom.g.position.set(x, heightAt(x, z), z); mom.g.rotation.y = Math.atan2(b[0] - a[0], b[1] - a[1])
       mom.play("walk", dt, 1)
-      while (kits.length < 5) { const kk = makeKit(kits.length); kk.g.visible = true; kk.hop = 1; kk.g.position.set(x, 0, z) }
+      while (kits.length < nKits) { const kk = makeKit(kits.length); kk.g.visible = true; kk.hop = 1; kk.g.position.set(x, 0, z) }
       kits.forEach((kk, i) => { const g = trailAt(SPACING * (i + 1)); kk.g.position.set(g.x, heightAt(g.x, g.z), g.z); if (g.hx || g.hz) kk.g.rotation.y = Math.atan2(g.hx, g.hz); kk.play("run", dt, 1.6) })
       target.set(x, 0, z)
       placeCamera(dt, { x: 0, z: 0 })
