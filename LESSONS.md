@@ -31,3 +31,23 @@ A 30 Hz sim drawn straight onto a 60 Hz screen moves the player every other fram
 
 The Relay scaffold's index.html does not load gameaday.js and its client has no shelf; hideseek added both by hand and so did this game. ship-check's gameaday:shelf is the only thing that notices. Worth moving into the template.
 
+
+## note
+
+A pickup disc's diagonal cell centre sits 9 cm inside a 1.5 m radius. A route through it is one loose step from a miss (the practice level's second kit). Keep a margin in the solver's disc so every routed cell is safely inside, and make the test driver hold at a baby's cell until it has joined.
+
+
+## note
+
+The template's art-only unfurl (share.textCard false) returned the plate for every link and never consulted share.cardArt; a run's route only reached the card after server.js was taught to ask cardArt when a token is present, and the token had to carry the route (26 points, two base64url chars each, ~52 chars). Worth moving into the template with the shelf tag and the portal build's gameaday filter.
+
+
+## note
+
+A sleeper (stay 1.5 s) and a wanderer (a kit running between two spots on a timer) are the two wrinkles that survive the solver: both cost a known wait the star thresholds can carry, both are visible on the ground, and a route bot can prove them walkable. Mud and ponds change the map; those two change the verb.
+
+
+## note
+
+A module the rules file imports is loaded by the browser too. card.mjs (node:fs for the plate) imported from game.rules.mjs blanked the game on the live site for a few minutes; the purity grep did not see it because it checks the rules file alone. Keep anything node-only behind the server's dynamic import, and walk the browser's import graph in the test (test/game.test.mjs does now).
+
