@@ -3,8 +3,8 @@
 import { generate, TIERS, tierForDay } from "../src/game/gen.mjs"
 import { reach } from "../src/game/solver.mjs"
 import { solve } from "../src/game/solver.mjs"
-import { create, apply, replay, result, moves } from "../src/game/game.rules.mjs"
-import { routeBot } from "../tools/bot.mjs"
+import { create, apply, advance, replay, result, moves } from "../src/game/game.rules.mjs"
+import { routeBot, headingTo } from "../tools/bot.mjs"
 import { passable, C } from "../src/game/sim.mjs"
 import { makeRng } from "../src/core/rng.mjs"
 
@@ -59,6 +59,27 @@ for (const tier of ["tiny", "small", "medium"]) {
   const tampered = log.map((m) => (m.t != null ? Object.assign({}, m, { t: m.t - 1000 }) : m))
   let threw = false; try { result(replay(seed, tampered, { tier: "tiny" })) } catch { threw = true }
   ok("a tampered log is ignored, not thrown", !threw)
+}
+
+// a client-style run: stick moves logged, the clock advanced by the frame loop (not a move), the finishing tick written
+// into the log as the view does, then "done for the day". The replay must land on the same metric.
+{
+  const seed = 4343, st = create(seed, { tier: "tiny" }), lv = st.level, route = lv.solve.route
+  const log = []; const push = (m) => { log.push(m); apply(st, m) }
+  push({ r: 1 }); let k = 0, last = null
+  for (let g = 0; g < 5000 && st.att; g++) {
+    const a = st.att
+    while (k < route.length) { const dx = route[k][0] - a.x, dz = route[k][1] - a.z; if (dx * dx + dz * dz < 0.03) k++; else break }
+    if (k >= route.length) k = route.length - 1
+    const p = k === route.length - 1 && a.got.length === lv.babies.length ? [lv.exit[0] + 0.5, lv.exit[1] + 0.5] : route[k]
+    const d = headingTo(a, p[0], p[1])
+    if (d !== last) { push({ t: a.tick, d, s: 4 }); last = d }
+    advance(st, a.tick + 1)
+    if (!st.att) { const h = st.history[st.history.length - 1]; if (h.done) log.push({ t: a.doneAt, d: a.d, s: a.s }) }
+  }
+  push({ q: 1 })
+  const live = result(st), re = result(replay(seed, log, { tier: "tiny" }))
+  ok("a run finished by the frame loop replays to the same metric once the finishing tick is logged", live.solved && live.metric === re.metric, `${live.metric} vs ${re.metric}`)
 }
 
 // the week: Monday is tiny, Sunday is huge, and the epoch day maps where the config says

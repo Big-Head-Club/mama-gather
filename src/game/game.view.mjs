@@ -408,6 +408,9 @@ export default {
             // the attempt ended (she reached the den): the line files in, then the card
             const h = state.history[state.history.length - 1]
             lastPath = a.path
+            // the finish happened inside advance(), which is not a move: write the finishing tick into the log as the
+            // stick in force at that tick, so a replay (the server's, the result screen's) reaches the den too
+            if (h && h.done) log.push({ t: a.doneAt, d: a.d, s: a.s })
             w.frame(now, { att: a, events })
             if (h && h.done) { clk.textContent = clock(h.ticks); w.finale(a, () => runEnd(h)) }
             return

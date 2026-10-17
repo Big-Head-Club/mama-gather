@@ -51,3 +51,8 @@ A sleeper (stay 1.5 s) and a wanderer (a kit running between two spots on a time
 
 A module the rules file imports is loaded by the browser too. card.mjs (node:fs for the plate) imported from game.rules.mjs blanked the game on the live site for a few minutes; the purity grep did not see it because it checks the rules file alone. Keep anything node-only behind the server's dynamic import, and walk the browser's import graph in the test (test/game.test.mjs does now).
 
+
+## note
+
+A finish that happens inside the frame loop's advance() is not a move and never reaches the log, so the server's replay ended with the run still in progress and every daily came back NOT SCORED: BADLOG. The view now writes the finishing tick into the log as the stick in force at that tick. Any resim game whose end comes from the clock rather than from an input needs the same line, and a client-style replay test (advance by the loop, log the finish, replay) to prove it.
+
