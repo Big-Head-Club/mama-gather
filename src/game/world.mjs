@@ -441,13 +441,19 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {}, tod =
   let lastNow = 0, stepAcc = 0, idleSince = 0, chorusAt = 0
   let momHeading = Math.PI, momSpeed = 0, momTurn = 0, lastHeading = Math.PI, momSquash = 0, momSniff = 0, momLook = null
   let wasComplete = false
+  let printsOn = lookOpts.prints !== false, anticsOn = lookOpts.antics !== false, ghostOn = lookOpts.ghost !== false
   let fin = null   // the den arrival, once it starts: { t0, att, onDone, gone: Set }
   const api = {
     ready: Promise.resolve(),
     toWorld, resize, showDebug, puff, ring, bang, momScreen, setGhost,
     get camera() { return camera },
     setHintRing(on) { hintRing.visible = !!on },
-    setLook(o) { if (o.viewH) { viewH = o.viewH; w = 0 } if (o.camLift) { camDir = new THREE.Vector3(1, o.camLift, 1).normalize() } },
+    setLook(o) {
+      if (o.viewH) { viewH = o.viewH; w = 0 } if (o.camLift) { camDir = new THREE.Vector3(1, o.camLift, 1).normalize() }
+      if (o.prints != null) { printsOn = !!o.prints; if (!printsOn) for (const p of prints) { p.t = -1; p.m.visible = false } }
+      if (o.antics != null) anticsOn = !!o.antics
+      if (o.ghost != null) { ghostOn = !!o.ghost; if (ghost) ghost.g.visible = ghostOn && !!ghostPath }
+    },
     // The den arrival: the kits file into the burrow one by one, she goes last, the glow swells, then onDone.
     finale(att, onDone) { if (fin) return; fin = { t0: t_(), att, onDone, gone: new Set(), done: false }; peekAt = null },
     get inFinale() { return !!fin },
@@ -487,7 +493,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {}, tod =
         if (inMud && momSpeed > 0.5 && Math.random() < dt * 8) puff(mx, 0, mz, 1, 0x4e3419, 0.7, 0.9)
         stepAcc += moved; printAcc += moved
         if (stepAcc > 1.1 && momSpeed > 0.5) { stepAcc = 0; if (events) events.step(inMud) }
-        if (printAcc > 0.45 && momSpeed > 0.3) { printAcc = 0; dropPrint(mx, mz, mom.g.rotation.y, inMud) }
+        if (printAcc > 0.45 && momSpeed > 0.3) { printAcc = 0; if (printsOn) dropPrint(mx, mz, mom.g.rotation.y, inMud) }
         // idle: the tail wags, and if something near her is rustling she looks at it; next to a spot she sniffs
         const idle = t - idleSince > 1.0 && momSpeed < 0.1
         const standing = momSpeed < 0.1
@@ -567,7 +573,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {}, tod =
             else { k.vx = 0; k.vz = 0; if (dist > 3.5) { kp.x = goal.x; kp.z = goal.z } }
             kp.y = heightAt(kp.x, kp.z)
             // antics while the line waits: a pounce on the one in front, a yawn, a tumble
-            if (idle && !REDUCED) {
+            if (idle && !REDUCED && anticsOn) {
               if (!k.antic && t > k.anticAt) { const kind = ["pounce", "yawn", "tumble"][Math.floor(Math.random() * 3)]; k.antic = { kind, t0: t, dur: kind === "yawn" ? 1.1 : 0.7 }; if (kind === "pounce" && i > 0) { const o = kits[i - 1].g.position; k.antic.tx = o.x; k.antic.tz = o.z } }
               if (k.antic) {
                 const e = Math.min(1, (t - k.antic.t0) / k.antic.dur)
@@ -660,7 +666,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {}, tod =
         }
         if (nearestHint && idle) momLook = Math.atan2(nearestHint.sp.x + 0.5 - mx, nearestHint.sp.z + 0.5 - mz)
         // the ghost of the best run, at the clock's tick
-        if (ghost && ghostPath) {
+        if (ghost && ghostPath && ghostOn) {
           const tk = att.tick + tickF
           const p = pathAt(ghostPath, tk)
           ghost.g.visible = !!p && att.started
@@ -731,7 +737,7 @@ export async function makeWorld(host, lv, { splash = false, lookOpts = {}, tod =
       mom.play("walk", dt, 1)
       if (mom.tail) mom.tail.rotation.y += Math.sin(t * 11) * 0.25
       printAcc += Math.sqrt((x - (mom.px || x)) ** 2 + (z - (mom.pz || z)) ** 2); mom.px = x; mom.pz = z
-      if (printAcc > 0.45) { printAcc = 0; dropPrint(x, z, mom.g.rotation.y, false) }
+      if (printAcc > 0.45) { printAcc = 0; if (printsOn) dropPrint(x, z, mom.g.rotation.y, false) }
       while (kits.length < nKits) { const kk = makeKit(kits.length); kk.g.visible = true; kk.hop = 1; kk.g.position.set(x, 0, z) }
       kits.forEach((kk, i) => { const g = trailAt(SPACING * (i + 1)); const side = kk.bias * 0.6 + kk.amp * 0.5 * Math.sin(t * kk.freq + kk.phase); const hl = Math.sqrt(g.hx * g.hx + g.hz * g.hz) || 1; kk.g.position.set(g.x - g.hz / hl * side, heightAt(g.x, g.z), g.z + g.hx / hl * side); if (g.hx || g.hz) kk.g.rotation.y = Math.atan2(g.hx, g.hz); kk.play("run", dt, 1.6); if (kk.tail) kk.tail.rotation.y += Math.sin(t * 9 + i) * 0.5 })
       for (const p of prints) { if (p.t < 0) continue; p.t += dt; p.m.material.opacity = 0.35 * Math.max(0, 1 - p.t / p.life); if (p.t >= p.life) { p.t = -1; p.m.visible = false } }

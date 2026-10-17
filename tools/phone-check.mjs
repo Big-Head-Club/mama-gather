@@ -9,10 +9,12 @@ const BASE = process.argv[2] || "http://localhost:4877"
 const OUT = "shots/phone-check"
 mkdirSync(OUT, { recursive: true })
 
-const SIZES = [
+const ALL_SIZES = [
   ["se", 375, 667], ["safari", 390, 664], ["small-android", 360, 640], ["android", 360, 740], ["max", 430, 932],
   ["landscape", 667, 375],
 ]
+// PHONE_SIZES=se,safari runs a subset
+const SIZES = process.env.PHONE_SIZES ? ALL_SIZES.filter(([t]) => process.env.PHONE_SIZES.split(",").includes(t)) : ALL_SIZES
 
 // Leaf boxes: text runs, buttons, inputs, canvases, images, the shelf host. Any two that are not nested and
 // intersect by more than 2px both ways is an overlap. Anything wider than the viewport is a spill.
@@ -83,6 +85,7 @@ for (const [tag, w, h] of SIZES) {
   const page = await ctx.newPage()
   const errs = []
   page.on("pageerror", (e) => errs.push(String(e)))
+  page.on("console", (m) => { if (/drive gave up/.test(m.text())) console.log("  " + m.text()) })
   // drive her along the solver's route; at a baby's cell she waits until it has joined (a sleeper needs her to
   // stay, a wanderer may be at its other spot), and the input is re-sent now and then in case a blur zeroed it
   const drive = async (ms) => page.evaluate((ms) => new Promise((res) => {
@@ -90,7 +93,7 @@ for (const [tag, w, h] of SIZES) {
     const owner = (wp, a) => { for (let b = 0; b < lv.babies.length; b++) { const si = lv.babies[b]; if (a.got.indexOf(si) >= 0) continue; const wd = (lv.wanderers || []).find((w) => w.baby === b); for (const sp of [lv.spots[si]].concat(wd ? [lv.spots[wd.to]] : [])) { const ex = sp.x + 0.5 - wp[0], ez = sp.z + 0.5 - wp[1]; if (ex * ex + ez * ez <= 2.3) return si } } return -1 }
     const iv = setInterval(() => {
       const a = m.att
-      if (!a || performance.now() - t0 > ms) { clearInterval(iv); if (a) m.input(0, 0); res(!a); return }
+      if (!a || performance.now() - t0 > ms) { clearInterval(iv); if (a) { m.input(0, 0); console.log("drive gave up at tick " + a.tick + " got " + a.got.length + "/" + lv.babies.length + " at " + a.x.toFixed(1) + "," + a.z.toFixed(1) + " k " + k + "/" + route.length) } res(!a); return }
       let hold = false
       while (k < route.length) {
         const dx = route[k][0] - a.x, dz = route[k][1] - a.z, dd = dx * dx + dz * dz

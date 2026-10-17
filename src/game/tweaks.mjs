@@ -7,8 +7,12 @@ export const OPTIONS = {
   zoom: { label: "Zoom", values: [["close", "Close"], ["normal", "Normal"], ["wide", "Wide"]] },
   hint: { label: "Hint ring", values: [["off", "Off"], ["on", "On"]] },
   music: { label: "Music", values: [["on", "On"], ["off", "Off"]] },
+  tod: { label: "Time of day", values: [["auto", "By weekday"], ["day", "Always day"], ["night", "Always night"]] },
+  prints: { label: "Pawprints", values: [["on", "On"], ["off", "Off"]] },
+  ghost: { label: "Ghost of best run", values: [["on", "On"], ["off", "Off"]] },
+  antics: { label: "Kit antics", values: [["on", "On"], ["off", "Off"]] },
 }
-const DEFAULTS = { cam: "iso", zoom: "normal", hint: "off", music: "on" }
+const DEFAULTS = { cam: "iso", zoom: "normal", hint: "off", music: "on", tod: "auto", prints: "on", ghost: "on", antics: "on" }
 let cur = { ...DEFAULTS }
 try { cur = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || "{}") } } catch {}
 export const tw = () => cur

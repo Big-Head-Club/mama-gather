@@ -35,7 +35,7 @@ function makeLoop(fn) {
 const clock = (ticks) => { const s = Math.max(0, ticks) / HZ; const m = Math.floor(s / 60), r = s - m * 60; return m ? `${m}:${r.toFixed(1).padStart(4, "0")}` : `${r.toFixed(1)}` }
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n }
 const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms) } catch {} }
-const look = () => ({ viewH: tw().zoom === "close" ? 12.5 : tw().zoom === "wide" ? 18 : 15, camLift: tw().cam === "high" ? 1.45 : 1 })
+const look = () => ({ viewH: tw().zoom === "close" ? 12.5 : tw().zoom === "wide" ? 18 : 15, camLift: tw().cam === "high" ? 1.45 : 1, prints: tw().prints !== "off", antics: tw().antics !== "off", ghost: tw().ghost !== "off" })
 // a little fox face for the counter: ears, head, nose
 const FACE = `<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M3 2l5 4h4l5-4v7a7 7 0 0 1-14 0z" fill="currentColor"/><circle cx="10" cy="13" r="1.6" fill="#2b1200"/></svg>`
 const tipSeen = (k) => { try { return localStorage.getItem("mg.tip." + k) === "1" } catch { return false } }
@@ -90,6 +90,58 @@ const CSS = `
 .mg-res .mg-sub { opacity:.85; font-size:16px; }
 .mg-row { display:flex; gap:8px; }
 .mg-row .btn { flex:1; min-width:0; padding-inline:12px; }
+/* THE DOOR: the forest is the window, the words are one bar across its foot. On a wide screen the bar is one
+   row (title, Play, Practice, links) with the other games as a short strip under it, not a phone column with
+   a shelf taller than the game (Mack, 2026-10-16: "our games look stupid on computer when more than 50% of the
+   screen is filled with sdk menu"). */
+.screen.on-splash .gad-shelf { zoom:.78; margin-top:12px; }
+.screen.on-splash .gad-end { zoom:.78; }
+@container (min-width: 760px) {
+  #stage > .screen.on-splash { max-width:none; display:grid; grid-template-columns:1fr auto auto auto; grid-template-areas:"title play practice links" "shelf shelf shelf shelf"; align-items:center; column-gap:22px; row-gap:10px; text-align:left; padding:16px 36px 8px; }
+  #stage > .screen.on-splash > * { margin-top:0; }
+  .screen.on-splash .mg-doortitle { grid-area:title; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .screen.on-splash .mg-doortitle .big { font-size:clamp(26px, 3.2cqw, 40px); }
+  .screen.on-splash .mg-doortitle .label { margin:0; }
+  .screen.on-splash .mg-doortitle .muted { margin:0; }
+  .screen.on-splash .mg-play { grid-area:play; width:auto; min-width:240px; margin:0; }
+  .screen.on-splash .mg-practice { grid-area:practice; width:auto; min-width:0; margin:0; }
+  .screen.on-splash .feet { grid-area:links; flex-direction:column; align-items:flex-start; gap:6px; margin:0; }
+  .screen.on-splash .gad-shelf { grid-area:shelf; zoom:.58; margin:0; }
+  .screen.on-splash > .label:not(.mg-doortitle *), .screen.on-splash > .mg-doornote { grid-column:1 / -1; margin:0; }
+}
+/* THE RESULT: the map beside the words on a wide screen, the shelf short */
+@container (min-width: 760px) {
+  #stage > .screen:has(.resultart) { max-width:960px; display:grid; grid-template-columns:minmax(0, 420px) 1fr; grid-template-areas:"art head" "art stat" "art strip" "art rank" "art share" "art next" "art remind" "art practice" "end end"; column-gap:36px; row-gap:10px; align-items:center; text-align:left; }
+  #stage > .screen:has(.resultart) > * { margin-top:0; }
+  #stage > .screen:has(.resultart) .resultart { grid-area:art; align-self:start; }
+  #stage > .screen:has(.resultart) .gad-end { grid-area:end; zoom:.6; }
+  #stage > .screen:has(.resultart) .btn { width:auto; min-width:220px; }
+}
+/* MENUS ARE BARS: the pause bar and the run bar sit on the bottom edge, carried to the window edges; the
+   lesser choices share a row; the world stays visible above */
+.mg-menu { align-items:flex-end; justify-content:center; padding:0; background:rgba(5,25,12,.38); }
+.mg-card { width:100%; max-width:none; border-radius:0; padding:18px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow:0 -1px 0 rgba(255,255,255,.18); gap:10px; max-height:calc(100% - 12px); }
+.mg-card h2 { font-size:22px; }
+.mg-card .mg-row .btn.ghost { font-size:14px; padding:12px 8px; }
+.mg-card .mg-links { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
+.mg-card .mg-links button { background:none; border:0; color:#fbfff5; font:600 14px var(--display); letter-spacing:.06em; text-decoration:underline; text-underline-offset:3px; padding:6px 2px; cursor:pointer; opacity:.9; }
+.mg-card.mg-pause { max-width:none; }
+.mg-card.mg-pause .mg-inner { width:min(100%, 560px); margin:0 auto; display:flex; flex-direction:column; gap:10px; }
+.mg-card.mg-run .mg-inner { width:min(100%, 560px); margin:0 auto; display:flex; flex-direction:column; gap:10px; align-items:center; }
+.mg-card.mg-run canvas { width:min(100%, 300px); }
+@container (min-width: 760px) {
+  .mg-card.mg-run .mg-inner { width:min(100%, 900px); display:grid; grid-template-columns:260px 1fr auto; grid-template-areas:"map stars btns" "map time btns" "map best btns" "map next btns" "map legend btns"; column-gap:28px; row-gap:4px; align-items:center; text-align:left; }
+  .mg-card.mg-run canvas { grid-area:map; width:260px; }
+  .mg-card.mg-run .mg-stars { grid-area:stars; font-size:36px; }
+  .mg-card.mg-run .mg-time { grid-area:time; font-size:48px; }
+  .mg-card.mg-run .mg-best { grid-area:best; }
+  .mg-card.mg-run .mg-next { grid-area:next; }
+  .mg-card.mg-run .mg-legend { grid-area:legend; justify-content:flex-start; }
+  .mg-card.mg-run .mg-btns { grid-area:btns; display:flex; flex-direction:column; gap:10px; min-width:240px; }
+  .mg-card.mg-run .mg-btns .mg-row { flex-direction:column; }
+  .mg-card.mg-run .mg-btns .btn { width:100%; }
+  .mg-card.mg-pause .mg-inner { width:min(100%, 760px); }
+}
 .mg-dbg { position:absolute; left:12px; bottom:calc(12px + env(safe-area-inset-bottom)); background:rgba(0,0,0,.6); color:#fff; font:12px/1.4 var(--mono); padding:8px 10px; border-radius:8px; z-index:7; white-space:pre; }
 ${STICK_CSS}
 `
@@ -98,7 +150,7 @@ function css() {
   if (document.getElementById("mg-css")) return
   const st = document.createElement("style"); st.id = "mg-css"; st.textContent = CSS; document.head.append(st)
 }
-const todFor = (number) => (number ? weekdayForDay(number, config.epoch) : 1)
+const todFor = (number) => (tw().tod === "day" ? 2 : tw().tod === "night" ? 6 : number ? weekdayForDay(number, config.epoch) : 1)
 
 export default {
   glyphs: { three: "\u{1F7E8}", two: "\u{1F7E7}", one: "\u{1F7E9}", quit: "⬛" },
@@ -125,6 +177,18 @@ export default {
     }).catch(() => {})
     const veil = el("div"); veil.style.cssText = "position:absolute;inset:0;background:linear-gradient(180deg, rgba(5,30,14,.15), rgba(5,30,14,.55) 70%);pointer-events:none"
     host.append(veil)
+    // the host builds the door after this returns: group its title lines and name its buttons so the bar can be one row
+    requestAnimationFrame(() => {
+      const sc = stage.querySelector(".screen.on-splash"); if (!sc || sc.querySelector(".mg-doortitle")) return
+      const kids = [...sc.children]
+      const big = kids.find((k) => k.classList.contains("big")); if (!big) return
+      const i = kids.indexOf(big)
+      const title = el("div", "mg-doortitle")
+      const take = [kids[i - 1] && kids[i - 1].classList.contains("label") ? kids[i - 1] : null, big, kids[i + 1] && kids[i + 1].classList.contains("muted") ? kids[i + 1] : null].filter(Boolean)
+      sc.insertBefore(title, take[0]); for (const k of take) title.append(k)
+      for (const b of sc.querySelectorAll(":scope > .btn")) b.classList.add(b.classList.contains("ghost") ? "mg-practice" : "mg-play")
+      for (const l of sc.querySelectorAll(":scope > .label")) l.classList.add("mg-doornote")
+    })
     return { destroy() { dead = true; if (loop) loop.stop(); if (world) world.destroy(); host.remove() } }
   },
 
@@ -209,14 +273,18 @@ export default {
       if (world && world.inFinale) return
       audio()
       openMenu((c) => {
-        c.append(el("h2", "", "Paused"))
+        c.classList.add("mg-pause")
+        const inner = el("div", "mg-inner"); c.append(inner)
+        const row1 = el("div", "mg-row")
         const b1 = el("button", "btn", "Keep going"); b1.onclick = closeMenu
-        const b2 = el("button", "btn ghost", "Start this run over"); b2.onclick = () => { closeMenu(); restart() }
-        const b3 = el("button", "btn ghost", sfx.muted() ? "Sound: off" : "Sound: on"); b3.onclick = () => { sfx.setMuted(!sfx.muted()); b3.textContent = sfx.muted() ? "Sound: off" : "Sound: on"; if (sfx.muted()) sfx.musicOff(); else if (tw().music === "on") sfx.music() }
-        const b4 = el("button", "btn ghost", `Corner map: ${miniOn ? "on" : "off"}`); b4.onclick = () => { miniOn = !miniOn; mini.hidden = !miniOn; b4.textContent = `Corner map: ${miniOn ? "on" : "off"}`; try { localStorage.setItem("mg.mini", miniOn ? "1" : "0") } catch {} }
-        const b5 = el("button", "btn ghost", `Hint ring: ${hintOn ? "on" : "off"}`); b5.onclick = () => { hintOn = !hintOn; world && world.setHintRing(hintOn); b5.textContent = `Hint ring: ${hintOn ? "on" : "off"}`; try { localStorage.setItem("mg.hintring", hintOn ? "1" : "0") } catch {} }
-        const b6 = el("button", "btn ghost", state.best >= 0 ? "Done for today" : "Give up for today"); b6.onclick = () => { closeMenu(); endDay() }
-        c.append(b1, b2, b3, b4, b5, b6)
+        const b2 = el("button", "btn ghost", "Start over"); b2.onclick = () => { closeMenu(); restart() }
+        row1.append(b1, b2); inner.append(row1)
+        const links = el("div", "mg-links")
+        const b3 = el("button", "", sfx.muted() ? "Sound off" : "Sound on"); b3.onclick = () => { sfx.setMuted(!sfx.muted()); b3.textContent = sfx.muted() ? "Sound off" : "Sound on"; if (sfx.muted()) sfx.musicOff(); else if (tw().music === "on") sfx.music() }
+        const b4 = el("button", "", `Map ${miniOn ? "on" : "off"}`); b4.onclick = () => { miniOn = !miniOn; mini.hidden = !miniOn; b4.textContent = `Map ${miniOn ? "on" : "off"}`; try { localStorage.setItem("mg.mini", miniOn ? "1" : "0") } catch {} }
+        const b5 = el("button", "", `Hint ring ${hintOn ? "on" : "off"}`); b5.onclick = () => { hintOn = !hintOn; world && world.setHintRing(hintOn); b5.textContent = `Hint ring ${hintOn ? "on" : "off"}`; try { localStorage.setItem("mg.hintring", hintOn ? "1" : "0") } catch {} }
+        const b6 = el("button", "", state.best >= 0 ? "Done for today" : "Give up for today"); b6.onclick = () => { closeMenu(); endDay() }
+        links.append(b3, b4, b5, b6); inner.append(links)
       })
     }
     let hintOn = tw().hint === "on"; try { if (localStorage.getItem("mg.hintring") === "1") hintOn = true } catch {}
@@ -289,21 +357,24 @@ export default {
       sfx.done(); buzz([40, 30, 40, 30, 120])
       if (window.tally) tally("run", { ticks, stars: h.stars, attempt: state.attempts, tier: state.tier })
       openMenu((c) => {
-        const s = el("div", "mg-stars"); s.innerHTML = starHtml(h.stars, true); c.append(s)
-        c.append(el("div", "mg-time", clock(ticks) + "s"))
-        if (state.attempts > 1) c.append(el("div", "mg-best", newBest ? "New best" : `Best ${clock(state.best)}s`))
-        c.append(el("div", "mg-sub", nextLine))
-        const mc = document.createElement("canvas"); mc.width = 400; mc.height = 400; c.append(mc)
+        c.classList.add("mg-run")
+        const inner = el("div", "mg-inner"); c.append(inner)
+        const mc = document.createElement("canvas"); mc.width = 400; mc.height = 400; inner.append(mc)
         drawMap(mc, lv, { route: newBest && state.bestPath ? state.bestPath : lastPath, optimal: lv.solve.route, stars: h.stars })
-        const lg = el("div", "mg-legend"); lg.innerHTML = `<span><i></i>yours</span><span><i class="opt"></i>fastest</span>`; c.append(lg)
+        const s = el("div", "mg-stars"); s.innerHTML = starHtml(h.stars, true); inner.append(s)
+        inner.append(el("div", "mg-time", clock(ticks) + "s"))
+        inner.append(el("div", "mg-best", state.attempts > 1 ? (newBest ? "New best" : `Best ${clock(state.best)}s`) : ""))
+        inner.append(el("div", "mg-sub mg-next", nextLine))
+        const lg = el("div", "mg-legend"); lg.innerHTML = `<span><i></i>yours</span><span><i class="opt"></i>fastest</span>`; inner.append(lg)
+        const btns = el("div", "mg-btns"); inner.append(btns)
         if (coach) {
-          const b = el("button", "btn", "Got it"); b.onclick = () => { closeMenu(); endDay() }; c.append(b)
+          const b = el("button", "btn", "Got it"); b.onclick = () => { closeMenu(); endDay() }; btns.append(b)
         } else {
           const row = el("div", "mg-row")
           const again = el("button", "btn", "Run it again"); again.onclick = () => { closeMenu(); restart() }
           const fin = el("button", "btn ghost", "Done for today"); fin.onclick = () => { closeMenu(); endDay() }
-          row.append(again, fin); c.append(row)
-          c.append(el("div", "mg-sub", `Run ${state.attempts}. Only your best time counts.`))
+          row.append(again, fin); btns.append(row)
+          btns.append(el("div", "mg-sub", `Run ${state.attempts}. Only your best time counts.`))
         }
       })
     }
