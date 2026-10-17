@@ -124,7 +124,7 @@ for (const [tag, w, h] of SIZES) {
   await check(page, tag + " practice start")
   await drive(2500)
   await check(page, tag + " practice mid")
-  await drive(30000)
+  await drive(60000)
   await page.waitForTimeout(800)
   await check(page, tag + " practice end card", { noSheet: true })
   await page.getByRole("button", { name: /got it/i }).click()
