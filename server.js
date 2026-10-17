@@ -16,6 +16,9 @@ import { dayKey, puzzleNumber, dayForPuzzle, msUntilNextDay, nextHourAt } from "
 import { resolveDeadline, isBot, BOT_LEVELS, botLevelOf } from "./src/core/table.mjs"
 import { seedFor, normaliseCrew } from "./src/core/seed.mjs"
 import { writePNG } from "./src/server/png.mjs"
+// How many moves a run may carry. 200 fits a turn game; a stick game logs every heading change (Mama Duck: a
+// five-minute run is thousands), so a game raises it in relay.config.mjs with `maxLog`.
+const MAX_LOG = Number(config.maxLog) || 200
 import { modesOf, makeCode, normaliseCode, makeClaimCode, normaliseClaim, tableSeed, questRunSeed, questLegSeed } from "./src/core/modes.mjs"
 import { decodeResult } from "./src/core/share.mjs"
 import { makeRng } from "./src/core/rng.mjs"
@@ -178,7 +181,7 @@ const procedures = {
     const d = day || today()
     if (d !== today()) return { error: "notToday" }          // archive days never score
     if (store.getRun(playerId, d, c)) return { error: "alreadyPlayed" }
-    if (!Array.isArray(log) || log.length > 200) return { error: "badLog" }
+    if (!Array.isArray(log) || log.length > MAX_LOG) return { error: "badLog" }
 
     const ctx = context({ day: d, crew: c })
     // The whole anti-cheat, for a deterministic game: play the log ourselves.
@@ -295,7 +298,7 @@ const procedures = {
     if (deadline && (room.resolved || Date.now() >= room.deadline_at)) return { error: "resolved" }
     if (room.subs[playerId] && !deadline) return { error: "alreadyPlayed" }
     if (!room.subs[playerId] && Object.keys(room.subs).length >= room.seats[1]) return { error: "tableFull" }
-    if (!Array.isArray(log) || log.length > 200) return { error: "badLog" }
+    if (!Array.isArray(log) || log.length > MAX_LOG) return { error: "badLog" }
 
     const state = rules.replay(room.seed, log)
     const r = rules.result(state, { seconds: Number(claimed && claimed.seconds) || 0 })
@@ -347,7 +350,7 @@ const procedures = {
     if (!playerId) return { error: "noPlayer" }
     const q = store.quest(playerId)
     if (!q.run || q.run.offers) return { error: "noLeg" }
-    if (!Array.isArray(log) || log.length > 200) return { error: "badLog" }
+    if (!Array.isArray(log) || log.length > MAX_LOG) return { error: "badLog" }
 
     const { seed, params } = legOf(q.run)
     const state = rules.replay(seed, log, params)

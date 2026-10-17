@@ -56,3 +56,8 @@ A module the rules file imports is loaded by the browser too. card.mjs (node:fs 
 
 A finish that happens inside the frame loop's advance() is not a move and never reaches the log, so the server's replay ended with the run still in progress and every daily came back NOT SCORED: BADLOG. The view now writes the finishing tick into the log as the stick in force at that tick. Any resim game whose end comes from the clock rather than from an input needs the same line, and a client-style replay test (advance by the loop, log the finish, replay) to prove it.
 
+
+## note
+
+The template's daily.submit rejects any log over 200 moves as badLog. That cap is a turn game's; a stick game logs every heading change and a one-minute run was ~400 moves, so every live daily was NOT SCORED even after the finishing tick was logged, and only a fresh-identity run on the live site showed it (ship-check does not read the rank line). The cap is now config.maxLog (Mama Duck: 6000); a live scoring check belongs in the gate for resim games.
+

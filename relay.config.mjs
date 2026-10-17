@@ -35,6 +35,9 @@ export default {
   },
 
   verify: "resim",
+  maxLog: 6000,                        // every stick change is a move; a huge-tier run runs five minutes
+
+
 
   // --- look -----------------------------------------------------------------
   theme: "forest",
