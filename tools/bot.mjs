@@ -41,8 +41,10 @@ function walk(state, waypoints, until, trace) {
       } else break
     }
     if (k >= waypoints.length) { k = waypoints.length - 1 }
-    // the last leg: aim at the den itself, not the cell beside it (a cell centre is exactly EXIT_R away)
-    const p = k === waypoints.length - 1 && a.got.length === lv.babies.length ? [lv.exit[0] + 0.5, lv.exit[1] + 0.5] : waypoints[k]
+    // the last leg: once she is at the cell beside the den (a cell centre is exactly EXIT_R away), aim at the den
+    // itself; from further off a straight line at it can clip a corner and pin her
+    const lastLeg = k === waypoints.length - 1 && a.got.length === lv.babies.length
+    const p = lastLeg && dd < 0.3 ? [lv.exit[0] + 0.5, lv.exit[1] + 0.5] : waypoints[k]
     const d = headingTo(a, p[0], p[1])
     apply(state, { t: a.tick, d, s: hold ? 0 : precise && dd < 0.09 ? 1 : 4 })
     advance(state, a.tick + 1)
