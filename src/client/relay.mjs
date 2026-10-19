@@ -372,11 +372,15 @@ function screenGateDone(r) {
   clearStage()
   const wrap = el("div", "screen stack center")
   wrap.append(el("div", "label", "practice round"))
-  wrap.append(el("div", "big", "THAT'S THE IDEA"))
-  wrap.append(el("div", "muted", "That one didn't count. Today's is a different one, and you get one go at it."))
+  const won = r && (r.won ?? r.solved ?? r.win)
+  wrap.append(el("div", "big", won === false ? "NOT THIS TIME" : "THAT'S THE IDEA"))
+  wrap.append(el("div", "muted", won === false ? "That one didn't count. Have another go, or take on today's." : "That one didn't count. Today's is a different one, and you get one go at it."))
   const b = el("button", "btn", "Play today's")
   b.onclick = () => startRun("daily")
   wrap.append(b)
+  const again = el("button", "btn ghost", won === false ? "Try again" : "Practice again")
+  again.onclick = () => startRun("gate")
+  wrap.append(again)
   $("#stage").append(wrap)
 }
 
