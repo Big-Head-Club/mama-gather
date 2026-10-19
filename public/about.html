@@ -2,7 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style id="phone-rules">
+/* PHONE RULES (mobile pass 2026-10-18). A game, not a document. First in the head so the game's own CSS wins.
+   touch-action: manipulation = no double-tap zoom (every plain button had it); a board or canvas that handles
+   its own gestures sets touch-action: none itself. 16px floor on inputs: iOS zooms the page into anything smaller
+   and leaves it zoomed. No long-press selection or copy sheet on the game; inputs stay selectable. */
+* { touch-action: manipulation; }
+html { -webkit-text-size-adjust: 100%; }
+body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+input, select, textarea { font-size: max(16px, 1em); }
+</style>
+<script>/* iOS ignores user-scalable=no; this is what stops a pinch from zooming the page */
+addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });</script>
 <title>Relay — a template for daily link-first games</title>
 <meta name="description" content="A template for daily web games whose primitive is a link you can paste into a group chat. Distilled from about forty-five of them.">
 <meta property="og:type" content="website">
