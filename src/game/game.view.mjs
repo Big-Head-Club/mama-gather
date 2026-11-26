@@ -232,6 +232,18 @@ export default {
     const log = []
     let destroyed = false, done = false
     const push = (m) => { log.push(m); apply(state, m) }
+    // TELEMETRY (tally). The host fires start and win/lose; these say where a run stops in between.
+    //   first_move  once per mount, on the first stick input the sim accepts; wait = seconds the forest was on
+    //               screen and running before it (a hidden tab and an open menu do not count)
+    //   kit         each kit that joins the line: n of `of`, t = ticks into this attempt
+    //   run         an attempt finished at the den (already here; mode and build added)
+    //   retry       "Run it again" on the run card
+    //   restart     "Start over" in the pause bar: the attempt was dropped with `got` kits at tick t
+    //   give_up     "Give up for today" with no finished run: where she was when the day ended (the host's lose follows)
+    // attempt counts from 1 and resets with the mount; tier and mode are the bounded vocabularies from the rules.
+    const facts = (more) => Object.assign({ mode, tier: state.tier, attempt: state.attempts, build: window.BUILD }, more)
+    const where = () => { const a = state.att; return { got: a ? a.got.length : 0, of: lv.babies.length, t: a ? a.tick : 0 } }
+    let moved = false, waited = 0
 
     const host = el("div", "mg"); host.dataset.bleed = ""
     root.append(host)
@@ -277,13 +289,13 @@ export default {
         const inner = el("div", "mg-inner"); c.append(inner)
         const row1 = el("div", "mg-row")
         const b1 = el("button", "btn", "Keep going"); b1.onclick = closeMenu
-        const b2 = el("button", "btn ghost", "Start over"); b2.onclick = () => { closeMenu(); restart() }
+        const b2 = el("button", "btn ghost", "Start over"); b2.onclick = () => { if (window.tally) tally("restart", facts(where())); closeMenu(); restart() }
         row1.append(b1, b2); inner.append(row1)
         const links = el("div", "mg-links")
         const b3 = el("button", "", sfx.muted() ? "Sound off" : "Sound on"); b3.onclick = () => { sfx.setMuted(!sfx.muted()); b3.textContent = sfx.muted() ? "Sound off" : "Sound on"; if (sfx.muted()) sfx.musicOff(); else if (tw().music === "on") sfx.music() }
         const b4 = el("button", "", `Map ${miniOn ? "on" : "off"}`); b4.onclick = () => { miniOn = !miniOn; mini.hidden = !miniOn; b4.textContent = `Map ${miniOn ? "on" : "off"}`; try { localStorage.setItem("mg.mini", miniOn ? "1" : "0") } catch {} }
         const b5 = el("button", "", `Hint ring ${hintOn ? "on" : "off"}`); b5.onclick = () => { hintOn = !hintOn; world && world.setHintRing(hintOn); b5.textContent = `Hint ring ${hintOn ? "on" : "off"}`; try { localStorage.setItem("mg.hintring", hintOn ? "1" : "0") } catch {} }
-        const b6 = el("button", "", state.best >= 0 ? "Done for today" : "Give up for today"); b6.onclick = () => { closeMenu(); endDay() }
+        const b6 = el("button", "", state.best >= 0 ? "Done for today" : "Give up for today"); b6.onclick = () => { if (window.tally && state.best < 0) tally("give_up", facts(where())); closeMenu(); endDay() }
         links.append(b3, b4, b5, b6); inner.append(links)
       })
     }
@@ -300,6 +312,7 @@ export default {
       const a = state.att
       if (!a.started) { simTick = 0; if (s === 0) return }
       push({ t: Math.floor(simTick), d, s })
+      if (!moved && s > 0) { moved = true; if (window.tally) tally("first_move", facts({ wait: Math.round(waited * 10) / 10 })) }
     }
     const stick = makeStick(host, {
       toWorld: (sx, sy) => (world ? world.toWorld(sx, sy) : [sx, sy]),
@@ -309,6 +322,7 @@ export default {
     const events = {
       kit: (n, b) => {
         sfx.kit(n); buzz(18); count.textContent = `${n}/${lv.babies.length}`
+        if (window.tally) tally("kit", facts({ n, of: lv.babies.length, t: state.att ? state.att.tick : 0 }))
         const f = dots.children[n - 1]; if (f) { f.classList.add("on", "pop"); setTimeout(() => f.classList.remove("pop"), 300) }
         if (n === lv.babies.length) { sfx.allfound(); buzz([30, 40, 60]); counter.classList.add("done"); capStep = Math.max(capStep, 3); showCap() } else { capStep = Math.max(capStep, 2); showCap() }
       },
@@ -355,7 +369,7 @@ export default {
       const nextLine = nextStarLine({ solved: true, ticks, stars: h.stars, t3: lv.solve.t3, t2: lv.solve.t2 })
       const newBest = state.bestAt === state.attempts
       sfx.done(); buzz([40, 30, 40, 30, 120])
-      if (window.tally) tally("run", { ticks, stars: h.stars, attempt: state.attempts, tier: state.tier })
+      if (window.tally) tally("run", facts({ ticks, stars: h.stars }))
       openMenu((c) => {
         c.classList.add("mg-run")
         const inner = el("div", "mg-inner"); c.append(inner)
@@ -371,7 +385,7 @@ export default {
           const b = el("button", "btn", "Got it"); b.onclick = () => { closeMenu(); endDay() }; btns.append(b)
         } else {
           const row = el("div", "mg-row")
-          const again = el("button", "btn", "Run it again"); again.onclick = () => { closeMenu(); restart() }
+          const again = el("button", "btn", "Run it again"); again.onclick = () => { if (window.tally) tally("retry", facts({ stars: h.stars })); closeMenu(); restart() }
           const fin = el("button", "btn ghost", "Done for today"); fin.onclick = () => { closeMenu(); endDay() }
           row.append(again, fin); btns.append(row)
           btns.append(el("div", "mg-sub", `Run ${state.attempts}. Only your best time counts.`))
@@ -403,6 +417,7 @@ export default {
         const a = state.att
         if (a && !done && menu.hidden && !w.inFinale) {
           if (a.started) simTick += dt * HZ
+          else if (!moved) waited += dt
           advance(state, Math.floor(simTick))
           if (!state.att) {
             // the attempt ended (she reached the den): the line files in, then the card
