@@ -53,9 +53,14 @@ export default {
     audio: [
       { what: "Digital Audio (the kits' squeaks) and Impact Sounds (footsteps)", who: "Kenney", url: "https://kenney.nl", licence: "CC0" },
       { what: "Ninja Adventure sounds (rustling grass, the finish jingle)", who: "Pixel-boy", url: "https://pixel-boy.itch.io/ninja-adventure-asset-pack", licence: "CC0" },
+      { what: "New sound: footsteps on dry grass, from the Sonniss GDC 2020 and 2023 bundles", who: "PMSFX and RYK-Sounds", url: "https://sonniss.com/gameaudiogdc", licence: "Sonniss GDC licence" },
+      { what: "New sound: rustling leaves, from the Sonniss GDC 2018 and 2023 bundles", who: "Soundrangers and BluezoneCorp", url: "https://sonniss.com/gameaudiogdc", licence: "Sonniss GDC licence" },
+      { what: "New sound: forest birds, from the Sonniss GDC 2017 bundle", who: "West Wolf", url: "https://sonniss.com/gameaudiogdc", licence: "Sonniss GDC licence" },
+      { what: "New sound: the all-found pluck and the finish phrase, from the Sonniss GDC 2026 and 2019 bundles", who: "Cinematic Sound Design and Chris Logsdon", url: "https://sonniss.com/gameaudiogdc", licence: "Sonniss GDC licence" },
     ],
     music: [
       { what: "Farm Frolics, from Music Loops", who: "Kenney", url: "https://kenney.nl", licence: "CC0" },
+      { what: "New sound: Interior Birdecorator, Explore (cute), from the Music Loop Bundle", who: "Abstraction", url: "https://abstractionmusic.com", licence: "CC0" },
     ],
     type: [
       { what: "Space Grotesk", who: "Florian Karsten", url: "https://github.com/floriankarsten/space-grotesk", licence: "SIL Open Font License 1.1" },

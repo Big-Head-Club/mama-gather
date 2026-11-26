@@ -360,7 +360,7 @@ export default {
       if (done) return
       done = true
       push({ q: 1 })
-      sfx.musicOff()
+      sfx.musicOff(); sfx.bedOff()
       finish(state, result(state))
     }
     function runEnd(h) {
@@ -398,8 +398,11 @@ export default {
     // automation pump the tab reports hidden while it is plainly being driven, so the pump never pauses
     const onVis = () => { if (PUMP) return; if (document.hidden) paused = true; else { paused = false; lastNow = 0 } }
     document.addEventListener("visibilitychange", onVis)
-    onTweak(() => { if (world) world.setLook(look()); if (tw().music === "on" && !sfx.muted()) sfx.music(); else sfx.musicOff() })
-    const unlock = () => { audio(); if (tw().music === "on" && !sfx.muted()) sfx.music() }
+    // "New sound" in ?tweaks swaps the whole set (sound.mjs); off is the shipped sound
+    const soundSet = () => sfx.setSet(tw().sound === "on" ? "v2" : "v1")
+    soundSet()
+    onTweak(() => { soundSet(); if (world) world.setLook(look()); if (tw().music === "on" && !sfx.muted()) sfx.music(); else sfx.musicOff() })
+    const unlock = () => { audio(); if (done || destroyed) return; sfx.bed(); if (tw().music === "on" && !sfx.muted()) sfx.music() }
     host.addEventListener("pointerdown", unlock, { once: true })
     addEventListener("keydown", unlock, { once: true })
 
@@ -480,7 +483,7 @@ export default {
         destroyed = true
         if (loop) loop.stop()
         document.removeEventListener("visibilitychange", onVis)
-        stick.destroy(); sfx.musicOff()
+        stick.destroy(); sfx.musicOff(); sfx.bedOff()
         if (world) world.destroy()
         root.replaceChildren()
       },
